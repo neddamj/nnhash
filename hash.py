@@ -6,7 +6,7 @@ import subprocess
 import argparse
 
 def compute_hash(image_path):
-    hashing_file_name = './nehcalc'
+    hashing_file_name = './nhcalc'
     output = subprocess.check_output([hashing_file_name, image_path])
     return output.strip().split()
 
