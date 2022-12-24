@@ -11,9 +11,9 @@ def generate_test_images(image_path, downsize_factor=90, upsize_factor=10):
                         interpolation=cv2.INTER_AREA)
     
     # Save those images to disk and return the paths to the images
-    filename, filetype = image_path.split('.')
-    path_smaller = f'{filename}_smaller.{filetype}'
-    path_larger = f'{filename}_larger.{filetype}'
+    _, _, filename, filetype = image_path.split('.')
+    path_smaller = f'../{filename}_smaller.{filetype}'
+    path_larger = f'../{filename}_larger.{filetype}'
     cv2.imwrite(path_smaller, img_smaller)
     cv2.imwrite(path_larger, img_larger)
 
