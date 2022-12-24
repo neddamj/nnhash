@@ -34,7 +34,7 @@ def verify_hash(path, path_smaller, path_larger):
         return False
 
 if __name__ == "__main__":
-    img_path = 'images/c1.bmp'
+    img_path = '../images/c1.bmp'
     img_path_smaller, img_path_larger = generate_test_images(img_path)  
     result = verify_hash(img_path, img_path_smaller, img_path_larger)
     print(result)
