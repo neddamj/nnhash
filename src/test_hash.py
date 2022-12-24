@@ -1,4 +1,4 @@
-from hash import compute_hash
+from utils import compute_hash
 import cv2
 
 def generate_test_images(image_path, downsize_factor=90, upsize_factor=10):
@@ -19,15 +19,12 @@ def generate_test_images(image_path, downsize_factor=90, upsize_factor=10):
 
     return (path_smaller, path_larger)
 
-
 def verify_hash(path, path_smaller, path_larger):
     # Verify that the same has is computed regardless of the image size
     hash = compute_hash(path)
     hash_s = compute_hash(path_smaller)
     hash_l = compute_hash(path_larger)
-
     print(f'Hash Regular: {hash}\nHash Smaller: {hash_s}\nHash Larger: {hash_l}')
-
     if (hash[1] == hash_s[1]) and (hash_s[1] == hash_l[1]):
         return True
     else:
