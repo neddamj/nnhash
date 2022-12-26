@@ -1,4 +1,5 @@
-from utils import compute_hash
+from utils import compute_hash, sample_pixel
+import numpy as np
 import cv2
 
 def generate_test_images(image_path, downsize_factor=90, upsize_factor=10):
@@ -19,7 +20,7 @@ def generate_test_images(image_path, downsize_factor=90, upsize_factor=10):
 
     return (path_smaller, path_larger)
 
-def verify_hash(path, path_smaller, path_larger):
+def test_compute_hash(path, path_smaller, path_larger):
     # Verify that the same has is computed regardless of the image size
     hash = compute_hash(path)
     hash_s = compute_hash(path_smaller)
@@ -30,8 +31,18 @@ def verify_hash(path, path_smaller, path_larger):
     else:
         return False
 
+def test_sample_pixel(path):
+    img = cv2.imread(img_path).astype(np.float32)
+    pixel, Y, X = sample_pixel(img)
+    return (pixel, Y, X)
+
 if __name__ == "__main__":
     img_path = '../images/c1.bmp'
-    img_path_smaller, img_path_larger = generate_test_images(img_path)  
-    result = verify_hash(img_path, img_path_smaller, img_path_larger)
-    print(result)
+    test_type = 'sample'
+    if test_type == 'hash':
+        img_path_smaller, img_path_larger = generate_test_images(img_path)  
+        result = test_compute_hash(img_path, img_path_smaller, img_path_larger)
+        print(result)
+    elif test_type == 'sample':
+        pixel, Y, X = test_sample_pixel(img_path)
+        print(f'Pixel Value: {pixel}\nPixel Height: {Y}\nPixel Width: {X}')
