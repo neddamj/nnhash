@@ -1,3 +1,4 @@
+from PIL import Image
 import numpy as np
 import subprocess
 import torch
@@ -14,13 +15,15 @@ def sample_pixel(img):
     (Y, X) = (int(Y*torch.rand(1)), int(X*torch.rand(1)))
     pixel = img[Y][X]
     # if pixel is 0 or 255 choose a new pixel
-    while 255.0 in pixel or 0.0 in pixel:
+    if int(pixel) == 255 or int(pixel) == 0:
         (Y, X) = (int(Y*torch.rand(1)), int(X*torch.rand(1)))
         pixel = img[Y][X]
     return (pixel, Y, X)
  
 def save_img(save_path, img):
-    cv2.imwrite(save_path, img)
+    img = Image.fromarray(np.uint8(img))
+    img.save(save_path)
+    #cv2.imwrite(save_path, img)
 
 def load_img(img_path):
-    return cv2.imread(img_path)
+    return np.array(Image.open(img_path)).astype(np.float32)
