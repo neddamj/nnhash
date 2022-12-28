@@ -3,11 +3,18 @@ import numpy as np
 import subprocess
 import cv2
 
-def compute_hash(image_path, return_type='hex'):
+def compute_hash(image_path, batch=False):
     hashing_file_name = './nhcalc'
-    output = subprocess.check_output([hashing_file_name, image_path])
-    hash = output.strip().split()
-    return int(hash[1], 16)
+    if batch:
+        image_path.insert(0, hashing_file_name)
+        output = subprocess.check_output(image_path)
+        hashes = output.strip().split()
+        hashes = hashes[1::3]
+        return list(map(lambda x: int(x,16), hashes))
+    else:
+        output = subprocess.check_output([hashing_file_name, image_path])
+        hash = output.strip().split()
+        return int(hash[1], 16)
 
 def sample_pixel(img):
     (Y, X) = img.shape[0], img.shape[1]
