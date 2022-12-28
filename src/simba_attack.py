@@ -29,7 +29,8 @@ if __name__ == "__main__":
     img = np.array(Image.open(img_path)).astype(np.float32)
     add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
     init_hash = compute_hash(img_path)
-    stepsize, counter, i = 200.0, 0, 0
+    epsilon, counter, i = 0.5, 0, 0
+    stepsize = int(epsilon*255.0)
     # Store the initial hash
     hashes = []
     hashes.append(init_hash)
@@ -39,6 +40,8 @@ if __name__ == "__main__":
         (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_preturbed_imgs(pixel, Y, X, img_path, add_img, sub_img, stepsize)
         print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tSub Hash: {hex(subtractive_hash)}')
         if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
+            # calculate l2 distortion 
+            dist = np.linalg.norm((add_img-img)/255)
             # replace original image by additive image and store the new hash
             counter += 1
             hashes.append(additive_hash)
@@ -46,10 +49,12 @@ if __name__ == "__main__":
             save_img(f'../{filename}_new.{filetype}', add_img)
             break
         elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
+            # calculate l2 distortion 
+            dist = np.linalg.norm(sub_img-img)
             # replace original image by subtractive image and store the new hash
             counter += 1
             hashes.append(subtractive_hash)
             print(f'[INFO] Saving Subtracted Image after {i} iterations')
             save_img(f'../{filename}_new.{filetype}', sub_img)
             break
-    print(f'The hash was changed {counter} times')
+    print(f'\nThe distortion to the original image is {dist:.2f} units')
