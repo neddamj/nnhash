@@ -3,6 +3,17 @@ import numpy as np
 import subprocess
 import cv2
 
+def resize_imgs(image_paths, new_size=(512, 512), batch=False):
+    if batch:
+        for path in image_paths:
+            img = Image.open(path)
+            img = img.resize(new_size)
+            img.save(path)
+    else:
+        img = Image.open(image_paths)
+        img = img.resize(new_size)
+        img.save(image_paths)
+
 def compute_hash(image_path, batch=False):
     hashing_file_name = './nhcalc'
     if batch:
@@ -10,7 +21,7 @@ def compute_hash(image_path, batch=False):
         output = subprocess.check_output(image_path)
         hashes = output.strip().split()
         hashes = hashes[1::3]
-        return list(map(lambda x: int(x,16), hashes))
+        return np.array(list(map(lambda x: int(x,16), hashes)))
     else:
         output = subprocess.check_output([hashing_file_name, image_path])
         hash = output.strip().split()
