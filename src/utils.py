@@ -1,6 +1,7 @@
 from PIL import Image
 import numpy as np
 import subprocess
+import glob
 import cv2
 
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
@@ -21,7 +22,7 @@ def compute_hash(image_path, batch=False):
         output = subprocess.check_output(image_path)
         hashes = output.strip().split()
         hashes = hashes[1::3]
-        return np.array(list(map(lambda x: int(x,16), hashes)))
+        return list(map(lambda x: int(x,16), hashes))
     else:
         output = subprocess.check_output([hashing_file_name, image_path])
         hash = output.strip().split()
@@ -32,10 +33,18 @@ def sample_pixel(img):
     (Y, X) = (int(Y*np.random.random(1)), int(X*np.random.random(1)))
     pixel = img[Y][X]
     return (pixel, Y, X)
+
+def load_img_paths(img_folder):
+    if img_folder[-1] == '/':
+        return glob.glob(f'{img_folder}*')
+    return glob.glob(f'{img_folder}/*')
  
 def save_img(save_path, img):
     img = Image.fromarray(np.uint8(img))
     img.save(save_path)
 
-def load_img(img_path):
-    return np.array(Image.open(img_path)).astype(np.float32)
+def load_img(img_path, batch=False):
+    if batch:
+        return list(map(lambda x: np.array(Image.open(x)).astype(np.float32), img_path))
+    else:
+        return np.array(Image.open(img_path)).astype(np.float32)
