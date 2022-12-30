@@ -20,18 +20,23 @@ def compute_hash(image_path, batch=False):
     if batch:
         image_path.insert(0, hashing_file_name)
         output = subprocess.check_output(image_path)
+        image_path.pop(0)
         hashes = output.strip().split()
         hashes = hashes[1::3]
-        return list(map(lambda x: int(x,16), hashes))
+        return np.array(list(map(lambda x: int(x,16), hashes)))
     else:
         output = subprocess.check_output([hashing_file_name, image_path])
         hash = output.strip().split()
         return int(hash[1], 16)
 
-def sample_pixel(img):
-    (Y, X) = img.shape[0], img.shape[1]
-    (Y, X) = (int(Y*np.random.random(1)), int(X*np.random.random(1)))
-    pixel = img[Y][X]
+def sample_pixel(img, batch=False):
+    if not batch:
+        (H, W) = img.shape[0], img.shape[1]
+        (Y, X) = (int(H*np.random.random(1)), int(W*np.random.random(1)))
+        pixel = img[Y][X]
+    else:   
+        (Y, X) = (int(512*np.random.random(1)), int(512*np.random.random(1)))
+        pixel = list(map(lambda x: x[Y][X], img))
     return (pixel, Y, X)
 
 def load_img_paths(img_folder):
@@ -45,6 +50,6 @@ def save_img(save_path, img):
 
 def load_img(img_path, batch=False):
     if batch:
-        return list(map(lambda x: np.array(Image.open(x)).astype(np.float32), img_path))
+        return np.array(list(map(lambda x: np.array(Image.open(x)), img_path)))
     else:
-        return np.array(Image.open(img_path)).astype(np.float32)
+        return np.array(Image.open(img_path))
