@@ -13,22 +13,38 @@ import cv2
 def get_hash_of_preturbed_imgs(pixels, H, W, path, add_img, sub_img, stepsize):
     _, _, filename, filetype = path.split('.') 
     # Add value to the pixel and get the hash 
-    for i, pixel in enumerate(pixels):
-        if pixel + stepsize <= 255.0:
-            add_img[H][W][i] = pixel + stepsize
-        else:
-            add_img[H][W][i] == 255.0
+    add_img[H][W] = pixels + stepsize
+    add_img = np.clip(add_img, 0.0, 255.0)
     save_img(f'../{filename}_add.{filetype}', add_img)
     add_hash = compute_hash(f'../{filename}_add.{filetype}')
     # Subtract value from the pixel and get the hash 
-    for i, pixel in enumerate(pixels):
-        if pixel - stepsize >= 0.0:
-            sub_img[H][W][i] = pixel - stepsize
-        else:
-            sub_img[H][W][i] = 0.0
+    sub_img[H][W] = pixels - stepsize
+    sub_img = np.clip(sub_img, 0.0, 255.0)
     save_img(f'../{filename}_sub.{filetype}', sub_img)
     sub_hash = compute_hash(f'../{filename}_sub.{filetype}')
     return (add_img, add_hash, sub_img, sub_hash)
+
+def get_hash_of_batch(pixels, H, W, paths, add_imgs, sub_imgs, stepsize, batch):
+    add_ims, sub_ims = [], []
+    add_paths, sub_paths = [], []
+    add_hashs, sub_hashs = [], []
+    for i, path in enumerate(paths):
+        _, _, filename, filetype = path.split('.')
+        # Add value to the pixel and get the hash 
+        add_imgs[i][H][W] = pixels[i] + stepsize
+        add_imgs[i] = np.clip(add_imgs[i], 0.0, 255.0)
+        save_img(f'../{filename}_add.{filetype}', add_imgs[i])
+        add_paths.append(f'../{filename}_add.{filetype}')
+        add_ims.append(add_imgs[i])
+        # Subtract value from the pixel and get the hash 
+        sub_imgs[i][H][W] = pixels[i] - stepsize
+        sub_imgs[i] = np.clip(sub_imgs[i], 0.0, 255.0)
+        save_img(f'../{filename}_sub.{filetype}', sub_imgs[i])
+        sub_paths.append(f'../{filename}_sub.{filetype}')
+        sub_ims.append(sub_imgs[i])
+    add_hashs.append(compute_hash(add_paths, batch=batch))
+    sub_hashs.append(compute_hash(sub_paths, batch=batch))
+    return (add_ims, add_hashs, sub_ims, sub_hashs)
 
 def simba_attack_image(img_path):
     _, _, filename, filetype = img_path.split('.')
@@ -69,10 +85,41 @@ def simba_attack_batch(folder_path, batch):
     stepsize = int(epsilon*255.0)
     # print(init_hashes)
     while True:
-        break
-
-
-
+        if len(img_paths) == 0:
+            break
+        i += 1
+        (pixels, Y, X) = sample_pixel(imgs, batch=batch)
+        (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, Y, X, img_paths, add_imgs, sub_imgs, stepsize, batch)
+        nz_adds = np.nonzero(init_hashes-additive_hashes)[0]       # Get the indeices of the nonzero additive hashes
+        nz_subs = np.nonzero(init_hashes-subtractive_hashes)[0]    # Get the indeices of the nonzero subtractive hashes
+        print(f'Iteration: {i}')
+        for index in nz_adds:
+            print(f'Index: {index}\t {nz_adds}, {img_paths}')
+            _, _, filename, filetype = img_paths[index].split('.')
+            print(f'[INFO] Saving the {index} Additive Image')
+            print(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[index]}')
+            save_img(f'../{filename}_new.{filetype}', add_imgs[index])
+            # Remove the hashed image from the caches
+            init_hashes = np.delete(init_hashes, index)
+            additive_hashes = np.delete(additive_hashes, index)
+            subtractive_hashes = np.delete(subtractive_hashes, index)
+            img_paths.pop(index)
+            add_imgs.pop(index)
+            sub_imgs.pop(index)
+        for index in nz_subs:
+            print(f'Index: {index}\t {nz_subs}, {img_paths}')
+            _, _, filename, filetype = img_paths[index].split('.')
+            print(f'[INFO] Saving the {index} Subtractive Image')
+            print(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[index]}')
+            save_img(f'../{filename}_new.{filetype}', sub_imgs[index])
+            # Remove the hashed image from the caches
+            init_hashes = np.delete(init_hashes, index)
+            additive_hashes = np.delete(additive_hashes, index)
+            subtractive_hashes = np.delete(subtractive_hashes, index)
+            img_paths.pop(index)
+            add_imgs.pop(index)
+            sub_imgs.pop(index)
+        
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--img_path", help="Path to the image for the single image attack")
