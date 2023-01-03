@@ -46,17 +46,17 @@ def get_hash_of_batch(pixels, H, W, paths, add_imgs, sub_imgs, stepsize, batch):
     sub_hashs.append(compute_hash(sub_paths, batch=batch))
     return (add_ims, add_hashs, sub_ims, sub_hashs)
 
-def simba_attack_image(img_path):
+def simba_attack_image(img_path, prev_samples, eps):
     _, _, filename, filetype = img_path.split('.')
     # Initialize images
     img = load_img(img_path)
     add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
     init_hash = compute_hash(img_path)
-    epsilon, i = 0.9, 0
+    epsilon, i = eps, 0
     stepsize = int(epsilon*255.0)
     while True:
         i += 1
-        (pixel, Y, X) = sample_pixel(img)
+        (pixel, Y, X), prev_samples = sample_pixel(img, prev_samples=prev_samples)
         (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_preturbed_imgs(pixel, Y, X, img_path, add_img, sub_img, stepsize)
         print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tSub Hash: {hex(subtractive_hash)}')
         if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
@@ -75,30 +75,31 @@ def simba_attack_image(img_path):
             break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
 
-def simba_attack_batch(folder_path, batch):
+def simba_attack_batch(folder_path, prev_samples, eps, batch=True):
     img_paths = load_img_paths(folder_path)
     resize_imgs(img_paths, batch=batch)
     imgs = load_img(img_paths, batch=batch)
     add_imgs, sub_imgs = copy.deepcopy(imgs), copy.deepcopy(imgs)
     init_hashes = compute_hash(img_paths, batch=batch)
-    epsilon, i = 0.9, 0
+    epsilon, i = eps, 0
     stepsize = int(epsilon*255.0)
-    # print(init_hashes)
+    hashes = []
     while True:
         if len(img_paths) == 0:
             break
         i += 1
-        (pixels, Y, X) = sample_pixel(imgs, batch=batch)
+        (pixels, Y, X), prev_samples = sample_pixel(imgs, prev_samples=prev_samples, batch=batch)
         (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, Y, X, img_paths, add_imgs, sub_imgs, stepsize, batch)
         nz_adds = np.nonzero(init_hashes-additive_hashes)[0]       # Get the indeices of the nonzero additive hashes
         nz_subs = np.nonzero(init_hashes-subtractive_hashes)[0]    # Get the indeices of the nonzero subtractive hashes
         print(f'Iteration: {i}')
         for index in nz_adds:
-            print(f'Index: {index}\t {nz_adds}, {img_paths}')
             _, _, filename, filetype = img_paths[index].split('.')
-            print(f'[INFO] Saving the {index} Additive Image')
+            print(f'[INFO] Saving the {index+1} Additive Image')
             print(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[index]}')
             save_img(f'../{filename}_new.{filetype}', add_imgs[index])
+            # Save the new hashes
+            hashes.append(additive_hashes[index])
             # Remove the hashed image from the caches
             init_hashes = np.delete(init_hashes, index)
             additive_hashes = np.delete(additive_hashes, index)
@@ -107,11 +108,13 @@ def simba_attack_batch(folder_path, batch):
             add_imgs.pop(index)
             sub_imgs.pop(index)
         for index in nz_subs:
-            print(f'Index: {index}\t {nz_subs}, {img_paths}')
+            print(f'Initial Hashes:{init_hashes}\nSubtractive Hashes:{subtractive_hashes}\nDifferences:{nz_subs}, {img_paths}')
             _, _, filename, filetype = img_paths[index].split('.')
             print(f'[INFO] Saving the {index} Subtractive Image')
             print(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[index]}')
             save_img(f'../{filename}_new.{filetype}', sub_imgs[index])
+            # Save the new hashes
+            hashes.append(subtractive_hashes[i])
             # Remove the hashed image from the caches
             init_hashes = np.delete(init_hashes, index)
             additive_hashes = np.delete(additive_hashes, index)
@@ -132,8 +135,12 @@ if __name__ == "__main__":
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
         batch = True
-
+    
+    # Store the previous pixels that were sampled
+    prev_samples = []
+    # Hyperparams
+    epsilon = 0.1
     if not batch:
-        simba_attack_image(img_path)
+        simba_attack_image(img_path, prev_samples, eps=epsilon)
     else:
-        simba_attack_batch(folder_path, batch)
+        simba_attack_batch(folder_path, prev_samples, eps=epsilon)
