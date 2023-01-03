@@ -1,8 +1,25 @@
 from PIL import Image
 import numpy as np
 import subprocess
+import shutil
 import glob
-import cv2
+import os
+
+def move_data_to_temp_ram(path, ram_size_mb=1, batch=False):
+    src_dir = path
+    dst_dir = '/Volumes/TempRAM/'
+    if not os.path.exists(dst_dir):
+        os.system(f'diskutil erasevolume HFS+ "TempRAM" `hdiutil attach -nomount ram://{ram_size_mb*2048}`')
+        print('[INFO] RAM Disk Created...')
+    else:
+        print('[INFO] RAM Disk Already Exists...')
+    for file_name in os.listdir(src_dir):
+        source = src_dir + file_name
+        destination = dst_dir + file_name
+        if os.path.isfile(source):
+            shutil.copy(source, destination)
+    print('[INFO] Files moved to temp RAM...')
+    return dst_dir
 
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
     if batch:
@@ -29,22 +46,16 @@ def compute_hash(image_path, batch=False):
         hash = output.strip().split()
         return int(hash[1], 16)
 
-def sample_pixel(img, prev_samples, batch=False):
-    def sample(img, batch):
-        if not batch:
-            (H, W) = img.shape[0], img.shape[1]
-            (Y, X) = (int(H*np.random.random(1)), int(W*np.random.random(1)))
-            pixel = img[Y][X]
-        else:   
-            (Y, X) = (int(512*np.random.random(1)), int(512*np.random.random(1)))
-            pixel = list(map(lambda x: x[Y][X], img))
-        return (pixel, Y, X)
-    # Sample without replacement
-    (pixel, Y, X) = sample(img, batch=batch)
-    while (Y, X) in prev_samples:
-        (pixel, Y, X) = sample(img, batch=batch)
-    prev_samples.append((Y,X))
-    return (pixel, Y, X), prev_samples
+def sample_pixel(img, batch=False):
+    if not batch:
+        (H, W) = img.shape[0], img.shape[1]
+        (Y, X) = (int(H*np.random.random(1)), int(W*np.random.random(1)))
+        pixel = img[Y][X]
+    else:   
+        (Y, X) = (int(512*np.random.random(1)), int(512*np.random.random(1)))
+        pixel = list(map(lambda x: x[Y][X], img))
+    return (pixel, Y, X)
+
 
 def load_img_paths(img_folder):
     if img_folder[-1] == '/':
