@@ -56,7 +56,6 @@ def sample_pixel(img, batch=False):
         pixel = list(map(lambda x: x[Y][X], img))
     return (pixel, Y, X)
 
-
 def load_img_paths(img_folder):
     if img_folder[-1] == '/':
         return glob.glob(f'{img_folder}*')

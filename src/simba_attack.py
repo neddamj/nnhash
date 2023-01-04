@@ -4,9 +4,11 @@
 '''
 
 from utils import compute_hash, sample_pixel, save_img, load_img, resize_imgs, load_img_paths, move_data_to_temp_ram
+from datetime import datetime
 from PIL import Image
 import numpy as np
 import argparse
+import logging
 import copy
 import cv2
 
@@ -52,8 +54,8 @@ def simba_attack_image(img_path, eps):
     img = load_img(img_path)
     add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
     init_hash = compute_hash(img_path)
-    epsilon, i = eps, 0
-    stepsize = int(epsilon*255.0)
+    i = 0
+    stepsize = int(eps*255.0)
     while True:
         i += 1
         (pixel, Y, X) = sample_pixel(img)
@@ -63,14 +65,18 @@ def simba_attack_image(img_path, eps):
             # calculate l2 distortion 
             dist = np.linalg.norm((add_img-img)/255)
             # replace original image by additive image and store the new hash
-            print(f'[INFO] Saving Added Image after {i} iterations')
+            logger.info(f'Saving Added Image after {i} iterations')
+            logger.info(f'L2 Distortion: {dist} units')
+            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
             save_img(f'{filename}_new.{filetype}', add_img)
             break
         elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
             # calculate l2 distortion 
             dist = np.linalg.norm(sub_img-img/255)
             # replace original image by subtractive image and store the new hash
-            print(f'[INFO] Saving Subtracted Image after {i} iterations')
+            logger.info(f'Saving Subrtacted Image after {i} iterations')
+            logger.info(f'L2 Distortion: {dist} units')
+            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
             save_img(f'{filename}_new.{filetype}', sub_img)
             break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
@@ -81,8 +87,8 @@ def simba_attack_batch(folder_path, eps, batch=True):
     imgs = load_img(img_paths, batch=batch)
     add_imgs, sub_imgs = copy.deepcopy(imgs), copy.deepcopy(imgs)
     init_hashes = compute_hash(img_paths, batch=batch)
-    epsilon, i = eps, 0
-    stepsize = int(epsilon*255.0)
+    i = 0
+    stepsize = int(eps*255.0)
     hashes = []
     while True:
         if len(img_paths) == 0:
@@ -95,8 +101,8 @@ def simba_attack_batch(folder_path, eps, batch=True):
         print(f'Iteration: {i}')
         for index in nz_adds:
             _, _, filename, filetype = img_paths[index].split('.')
-            print(f'[INFO] Saving the {index+1} Additive Image')
-            print(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[index]}')
+            logger.info(f'Saving the {index+1} Additive Image')
+            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[index]}')
             save_img(f'../{filename}_new.{filetype}', add_imgs[index])
             # Save the new hashes
             hashes.append(additive_hashes[index])
@@ -108,10 +114,9 @@ def simba_attack_batch(folder_path, eps, batch=True):
             add_imgs.pop(index)
             sub_imgs.pop(index)
         for index in nz_subs:
-            print(f'Initial Hashes:{init_hashes}\nSubtractive Hashes:{subtractive_hashes}\nDifferences:{nz_subs}, {img_paths}')
             _, _, filename, filetype = img_paths[index].split('.')
-            print(f'[INFO] Saving the {index} Subtractive Image')
-            print(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[index]}')
+            logger.info(f'[INFO] Saving the {index} Subtractive Image')
+            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[index]}')
             save_img(f'../{filename}_new.{filetype}', sub_imgs[index])
             # Save the new hashes
             hashes.append(subtractive_hashes[i])
@@ -131,21 +136,27 @@ if __name__ == "__main__":
     args = vars(ap.parse_args())
 
     batch = True if args['batch'] == 'True' else False
-    print(type(batch), batch)
     if args['img_path'] is not None:
         img_path = args['img_path']
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
-    
     folder_path = move_data_to_temp_ram(folder_path)
-    if not batch:
-        _, _, path, filetype = img_path.split('.')
-        img_path = path.split('/')
-        img_path = f'{folder_path}{img_path[2]}.{filetype}'
+
+    # Configure logging
+    now = datetime.now()
+    dt_string = now.strftime("%d-%m-%Y_%H:%M:%S")
+    logging.basicConfig(filename=f'../logs/{dt_string}.log',
+                        format='%(asctime)s %(message)s',
+                        filemode='w')
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
 
     # Hyperparams
     epsilon = 0.9
     if not batch:
+        _, _, path, filetype = img_path.split('.')
+        img_path = path.split('/')
+        img_path = f'{folder_path}{img_path[2]}.{filetype}'
         simba_attack_image(img_path, eps=epsilon)
     else:
         simba_attack_batch(folder_path, eps=epsilon)
