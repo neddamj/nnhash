@@ -12,10 +12,11 @@ import logging
 import copy
 import cv2
 
-def get_hash_of_preturbed_imgs(pixels, H, W, path, add_img, sub_img, stepsize):
+def get_hash_of_preturbed_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize):
     filename, filetype = path.split('.') 
+    print(add_img[H][W][C], pixels)
     # Add value to the pixel and get the hash 
-    add_img[H][W] = pixels + stepsize
+    add_img[H][W][C] = pixels + stepsize
     add_img = np.clip(add_img, 0.0, 255.0)
     save_img(f'{filename}_add.{filetype}', add_img)
     add_hash = compute_hash(f'{filename}_add.{filetype}')
@@ -26,20 +27,20 @@ def get_hash_of_preturbed_imgs(pixels, H, W, path, add_img, sub_img, stepsize):
     sub_hash = compute_hash(f'{filename}_sub.{filetype}')
     return (add_img, add_hash, sub_img, sub_hash)
 
-def get_hash_of_batch(pixels, H, W, paths, add_imgs, sub_imgs, stepsize, batch):
+def get_hash_of_batch(pixels, H, W, C, paths, add_imgs, sub_imgs, stepsize, batch):
     add_ims, sub_ims = [], []
     add_paths, sub_paths = [], []
     add_hashs, sub_hashs = [], []
     for i, path in enumerate(paths):
-        _, _, filename, filetype = path.split('.')
+        filename, filetype = path.split('.')
         # Add value to the pixel and get the hash 
-        add_imgs[i][H][W] = pixels[i] + stepsize
+        add_imgs[i][H][W][C] = pixels[i] + stepsize
         add_imgs[i] = np.clip(add_imgs[i], 0.0, 255.0)
         save_img(f'{filename}_add.{filetype}', add_imgs[i])
         add_paths.append(f'{filename}_add.{filetype}')
         add_ims.append(add_imgs[i])
         # Subtract value from the pixel and get the hash 
-        sub_imgs[i][H][W] = pixels[i] - stepsize
+        sub_imgs[i][H][W][C] = pixels[i] - stepsize
         sub_imgs[i] = np.clip(sub_imgs[i], 0.0, 255.0)
         save_img(f'{filename}_sub.{filetype}', sub_imgs[i])
         sub_paths.append(f'{filename}_sub.{filetype}')
@@ -58,14 +59,21 @@ def simba_attack_image(img_path, eps):
     stepsize = int(eps*255.0)
     while True:
         i += 1
-        (pixel, Y, X) = sample_pixel(img)
-        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_preturbed_imgs(pixel, Y, X, img_path, add_img, sub_img, stepsize)
+        (pixel, Y, X, Z) = sample_pixel(img)
+        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_preturbed_imgs(pixel, 
+                                                                                        Y, 
+                                                                                        X, 
+                                                                                        Z,
+                                                                                        img_path, 
+                                                                                        add_img, 
+                                                                                        sub_img, 
+                                                                                        stepsize)
         print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tSub Hash: {hex(subtractive_hash)}')
         if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
             # calculate l2 distortion 
             dist = np.linalg.norm((add_img-img)/255)
             # replace original image by additive image and store the new hash
-            logger.info(f'Saving Added Image after {i} iterations')
+            logger.info(f'Saving {filename}_add.{filetype} after {i} iterations')
             logger.info(f'L2 Distortion: {dist} units')
             logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
             save_img(f'{filename}_new.{filetype}', add_img)
@@ -74,7 +82,7 @@ def simba_attack_image(img_path, eps):
             # calculate l2 distortion 
             dist = np.linalg.norm(sub_img-img/255)
             # replace original image by subtractive image and store the new hash
-            logger.info(f'Saving Subrtacted Image after {i} iterations')
+            logger.info(f'Saving {filename}_new.{filetype} after {i} iterations')
             logger.info(f'L2 Distortion: {dist} units')
             logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
             save_img(f'{filename}_new.{filetype}', sub_img)
@@ -94,18 +102,29 @@ def simba_attack_batch(folder_path, eps, batch=True):
         if len(img_paths) == 0:
             break
         i += 1
-        (pixels, Y, X) = sample_pixel(imgs, batch=batch)
-        (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, Y, X, img_paths, add_imgs, sub_imgs, stepsize, batch)
-        nz_adds = np.nonzero(init_hashes-additive_hashes)[0]       # Get the indeices of the nonzero additive hashes
-        nz_subs = np.nonzero(init_hashes-subtractive_hashes)[0]    # Get the indeices of the nonzero subtractive hashes
+        (pixels, Y, X, Z) = sample_pixel(imgs, batch=batch)
+        (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, 
+                                                                                    Y, 
+                                                                                    X, 
+                                                                                    Z,
+                                                                                    img_paths, 
+                                                                                    add_imgs, 
+                                                                                    sub_imgs, 
+                                                                                    stepsize, 
+                                                                                    batch)
+        nz_adds = np.nonzero(init_hashes-additive_hashes[0])[0]       # Get the indices of the nonzero additive hashes
+        nz_subs = np.nonzero(init_hashes-subtractive_hashes[0])[0]    # Get the indices of the nonzero subtractive hashes
         print(f'Iteration: {i}')
         for index in nz_adds:
-            _, _, filename, filetype = img_paths[index].split('.')
-            logger.info(f'Saving the {index+1} Additive Image')
-            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[index]}')
-            save_img(f'../{filename}_new.{filetype}', add_imgs[index])
+            # calculate l2 distortion 
+            dist = np.linalg.norm((add_imgs[index]-imgs[index])/255)
+            filename, filetype = img_paths[index].split('.')
+            logger.info(f'Saving {filename}_add.{filetype} after {i+1} iterations')
+            logger.info(f'L2 Distortion: {dist} units')
+            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[0][index]}\n')
+            save_img(f'{filename}_new.{filetype}', add_imgs[index])
             # Save the new hashes
-            hashes.append(additive_hashes[index])
+            hashes.append(additive_hashes[0][index])
             # Remove the hashed image from the caches
             init_hashes = np.delete(init_hashes, index)
             additive_hashes = np.delete(additive_hashes, index)
@@ -114,12 +133,15 @@ def simba_attack_batch(folder_path, eps, batch=True):
             add_imgs.pop(index)
             sub_imgs.pop(index)
         for index in nz_subs:
-            _, _, filename, filetype = img_paths[index].split('.')
-            logger.info(f'[INFO] Saving the {index} Subtractive Image')
-            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[index]}')
-            save_img(f'../{filename}_new.{filetype}', sub_imgs[index])
+            # calculate l2 distortion 
+            dist = np.linalg.norm((sub_imgs[index]-imgs[index])/255)
+            filename, filetype = img_paths[index].split('.')
+            logger.info(f'Saving {filename}_sub.{filetype} after {i+1} iterations')
+            logger.info(f'L2 Distortion: {dist} units')
+            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[0][index]}\n')
+            save_img(f'{filename}_new.{filetype}', sub_imgs[index])
             # Save the new hashes
-            hashes.append(subtractive_hashes[i])
+            hashes.append(subtractive_hashes[0][index])
             # Remove the hashed image from the caches
             init_hashes = np.delete(init_hashes, index)
             additive_hashes = np.delete(additive_hashes, index)
@@ -128,19 +150,13 @@ def simba_attack_batch(folder_path, eps, batch=True):
             add_imgs.pop(index)
             sub_imgs.pop(index)
         
+        
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("-b", "--batch", required=True, help="Set to true if you want operations on multiple images, False otherwise")
     ap.add_argument("-i", "--img_path", help="Path to the image for the single image attack")
     ap.add_argument("-f", "--folder_path", required=True, help="Path to the directory containing images for the batch image attack")
     args = vars(ap.parse_args())
-
-    batch = True if args['batch'] == 'True' else False
-    if args['img_path'] is not None:
-        img_path = args['img_path']
-    if args['folder_path'] is not None:
-        folder_path = args['folder_path']
-    folder_path = move_data_to_temp_ram(folder_path)
 
     # Configure logging
     now = datetime.now()
@@ -150,6 +166,14 @@ if __name__ == "__main__":
                         filemode='w')
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
+
+    # Data paths
+    batch = True if args['batch'] == 'True' else False
+    if args['img_path'] is not None:
+        img_path = args['img_path']
+    if args['folder_path'] is not None:
+        folder_path = args['folder_path']
+    folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
     epsilon = 0.9

@@ -49,12 +49,12 @@ def compute_hash(image_path, batch=False):
 def sample_pixel(img, batch=False):
     if not batch:
         (H, W) = img.shape[0], img.shape[1]
-        (Y, X) = (int(H*np.random.random(1)), int(W*np.random.random(1)))
-        pixel = img[Y][X]
+        (Y, X, Z) = (int(H*np.random.random(1)), int(W*np.random.random(1)), int(3*np.random.random(1)))
+        pixel = img[Y][X][Z]
     else:   
-        (Y, X) = (int(512*np.random.random(1)), int(512*np.random.random(1)))
-        pixel = list(map(lambda x: x[Y][X], img))
-    return (pixel, Y, X)
+        (Y, X, Z) = (int(512*np.random.random(1)), int(512*np.random.random(1)), int(3*np.random.random(1)))
+        pixel = list(map(lambda x: x[Y][X][Z], img))
+    return (pixel, Y, X, Z)
 
 def load_img_paths(img_folder):
     if img_folder[-1] == '/':
