@@ -3,7 +3,8 @@
            python3 simba_attack.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
-from utils import compute_hash, sample_pixel, save_img, load_img, resize_imgs, load_img_paths, move_data_to_temp_ram
+from utils import compute_hash, sample_pixel, save_img, load_img, resize_imgs, load_img_paths, move_data_to_temp_ram, count_mismatched_bits
+from data import load_cifar10, save_cifar10_to_disk
 from datetime import datetime
 from PIL import Image
 import numpy as np
@@ -30,7 +31,6 @@ def get_hash_of_preturbed_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize
 def get_hash_of_batch(pixels, H, W, C, paths, add_imgs, sub_imgs, stepsize, batch):
     add_ims, sub_ims = [], []
     add_paths, sub_paths = [], []
-    add_hashs, sub_hashs = [], []
     for i, path in enumerate(paths):
         filename, filetype = path.split('.')
         # Add value to the pixel and get the hash 
@@ -45,11 +45,11 @@ def get_hash_of_batch(pixels, H, W, C, paths, add_imgs, sub_imgs, stepsize, batc
         save_img(f'{filename}_sub.{filetype}', sub_imgs[i])
         sub_paths.append(f'{filename}_sub.{filetype}')
         sub_ims.append(sub_imgs[i])
-    add_hashs.append(compute_hash(add_paths, batch=batch))
-    sub_hashs.append(compute_hash(sub_paths, batch=batch))
-    return (add_ims, add_hashs, sub_ims, sub_hashs)
+    add_hashs = compute_hash(add_paths, batch=batch)
+    sub_hashs = compute_hash(sub_paths, batch=batch)
+    return (add_ims, add_hashs, sub_ims, sub_hashs) 
 
-def simba_attack_image(img_path, eps, max_steps=5000):
+def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
     filename, filetype = img_path.split('.')
     # Initialize images
     img = load_img(img_path)
@@ -70,26 +70,28 @@ def simba_attack_image(img_path, eps, max_steps=5000):
                                                                                         stepsize)
         print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tSub Hash: {hex(subtractive_hash)}')
         if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
-            # calculate l2 distortion 
-            dist = np.linalg.norm((add_img-img)/255)
-            # replace original image by additive image and store the new hash
-            logger.info(f'Saving {filename}_add.{filetype} after {i} iterations')
-            logger.info(f'L2 Distortion: {dist:.2f} units')
-            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
-            save_img(f'{filename}_new.{filetype}', add_img)
-            break
+            if count_mismatched_bits(init_hash, additive_hash) >= mismatched_threshold:
+                # calculate l2 distortion 
+                dist = np.linalg.norm((add_img-img)/255)
+                # replace original image by additive image and store the new hash
+                logger.info(f'Saving {filename}_add.{filetype} after {i} iterations')
+                logger.info(f'L2 Distortion: {dist:.2f} units')
+                logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
+                save_img(f'{filename}_new.{filetype}', add_img)
+                break
         elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
-            # calculate l2 distortion 
-            dist = np.linalg.norm(sub_img-img/255)
-            # replace original image by subtractive image and store the new hash
-            logger.info(f'Saving {filename}_new.{filetype} after {i} iterations')
-            logger.info(f'L2 Distortion: {dist:.2f} units')
-            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
-            save_img(f'{filename}_new.{filetype}', sub_img)
-            break
+            if count_mismatched_bits(init_hash, subtractive_hash) >= mismatched_threshold:
+                # calculate l2 distortion 
+                dist = np.linalg.norm(sub_img-img/255)
+                # replace original image by subtractive image and store the new hash
+                logger.info(f'Saving {filename}_new.{filetype} after {i} iterations')
+                logger.info(f'L2 Distortion: {dist:.2f} units')
+                logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
+                save_img(f'{filename}_new.{filetype}', sub_img)
+                break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
 
-def simba_attack_batch(folder_path, eps, max_steps=5000, batch=True):
+def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
     img_paths = load_img_paths(folder_path)
     resize_imgs(img_paths, batch=batch)
     imgs = load_img(img_paths, batch=batch)
@@ -98,7 +100,7 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, batch=True):
     counter, i = 0, 0
     total_imgs = len(img_paths)
     stepsize = int(eps*255.0)
-    hashes, distortion = [], []
+    hashes, distortion, processed = [], [], []
     while i < max_steps:
         if len(img_paths) == 0:
             break
@@ -113,49 +115,49 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, batch=True):
                                                                                     sub_imgs, 
                                                                                     stepsize, 
                                                                                     batch)
-        nz_adds = np.nonzero(init_hashes-additive_hashes[0])[0]       # Get the indices of the nonzero additive hashes
-        nz_subs = np.nonzero(init_hashes-subtractive_hashes[0])[0]    # Get the indices of the nonzero subtractive hashes
+        nz_adds = np.nonzero(init_hashes-additive_hashes)[0]       # Get the indices of the nonzero additive hashes
+        nz_subs = np.nonzero(init_hashes-subtractive_hashes)[0]    # Get the indices of the nonzero subtractive hashes
         print(f'Iteration: {i}')
         for index in nz_adds:
-            counter += 1
-            # calculate l2 distortion 
-            dist = np.linalg.norm((add_imgs[index]-imgs[index])/255)
             filename, filetype = img_paths[index].split('.')
-            logger.info(f'Saving "{filename}_add.{filetype}" after {i+1} iterations')
-            logger.info(f'L2 Distortion: {dist:.2f} units')
-            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {additive_hashes[0][index]}\n')
-            save_img(f'{filename}_new.{filetype}', add_imgs[index])
-            # Save the new hashes and distortions
-            hashes.append(additive_hashes[0][index])
-            distortion.append(dist)
-            # Remove the hashed image from the caches
-            init_hashes = np.delete(init_hashes, index)
-            additive_hashes = np.delete(additive_hashes, index)
-            subtractive_hashes = np.delete(subtractive_hashes, index)
-            img_paths.pop(index)
-            add_imgs.pop(index)
-            sub_imgs.pop(index)
+            if f'{filename}.{filetype}' in processed:
+                continue
+            else:
+                if count_mismatched_bits(init_hashes[index], additive_hashes[index]) >= mismatched_threshold:
+                    counter += 1
+                    # calculate l2 distortion 
+                    dist = np.linalg.norm(add_imgs[index]/255.0-imgs[index]/255.0)
+                    filename, filetype = img_paths[index].split('.')
+                    logger.info(f'Saving "{filename}_add.{filetype}" after {i+1} iterations')
+                    logger.info(f'L2 Distortion: {dist:.2f} units')
+                    logger.info(f'Old Hash: {hex(init_hashes[index])} \tNew Hash: {hex(additive_hashes[index])}\n')
+                    save_img(f'{filename}_new.{filetype}', add_imgs[index])
+                    # Save the new hashes and distortions
+                    hashes.append(additive_hashes[index])
+                    distortion.append(dist)
+                    # Track the imgs with changed hashes
+                    processed.append(f'{filename}.{filetype}')
         for index in nz_subs:
-            counter += 1
-            # calculate l2 distortion 
-            dist = np.linalg.norm((sub_imgs[index]-imgs[index])/255)
             filename, filetype = img_paths[index].split('.')
-            logger.info(f'Saving "{filename}_sub.{filetype}" after {i+1} iterations')
-            logger.info(f'L2 Distortion: {dist:.2f} units')
-            logger.info(f'Old Hash: {init_hashes[index]} \tNew Hash: {subtractive_hashes[0][index]}\n')
-            save_img(f'{filename}_new.{filetype}', sub_imgs[index])
-            # Save the new hashes and distortions
-            hashes.append(subtractive_hashes[0][index])
-            distortion.append(dist)
-            # Remove the hashed image from the caches
-            init_hashes = np.delete(init_hashes, index)
-            additive_hashes = np.delete(additive_hashes, index)
-            subtractive_hashes = np.delete(subtractive_hashes, index)
-            img_paths.pop(index)
-            add_imgs.pop(index)
-            sub_imgs.pop(index)
+            if f'{filename}.{filetype}' in processed:
+                continue
+            else:
+                if count_mismatched_bits(init_hashes[index], subtractive_hashes[index]) >= mismatched_threshold:
+                    counter += 1
+                    # calculate l2 distortion 
+                    dist = np.linalg.norm(sub_imgs[index]/255.0-imgs[index]/255.0)
+                    filename, filetype = img_paths[index].split('.')
+                    logger.info(f'Saving "{filename}_sub.{filetype}" after {i+1} iterations')
+                    logger.info(f'L2 Distortion: {dist:.2f} units')
+                    logger.info(f'Old Hash: {hex(init_hashes[index])} \tNew Hash: {hex(subtractive_hashes[index])}\n')
+                    save_img(f'{filename}_new.{filetype}', sub_imgs[index])
+                    # Save the new hashes and distortions
+                    hashes.append(subtractive_hashes[index])
+                    distortion.append(dist)
+                    # Track the imgs with changed hashes
+                    processed.append(f'{filename}.{filetype}')
     logging.info(f'Total Steps: {i}\t Attack Success Rate: {100*(counter/total_imgs):.2f}%\t \
-        Average Distortion: {sum(distortion)/len(distortion):.2f}')
+        Average Distortion: {sum(distortion)/len(distortion):.2f}\t Processed Images: {counter}')
         
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -173,21 +175,33 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
-    # Data paths
+    # Load and Prepare the Data
     batch = True if args['batch'] == 'True' else False
     if args['img_path'] is not None:
         img_path = args['img_path']
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
+    (x_train, y_train), (x_test, y_test) = load_cifar10()
+    save_cifar10_to_disk(x_train, folder_path, num_images=100)
     folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.9
-    logger.info(f'Epsilon: {epsilon}\n')
+    epsilon = 0.1
+    max_mismatched_bits = 1
+    max_steps = 10000
+    logger.info(f'Epsilon: {epsilon}\tMismatched Bits Threshold: {max_mismatched_bits}\n')
+
+    # Attack NeuralHash
     if not batch:
         _, _, path, filetype = img_path.split('.')
         img_path = path.split('/')
         img_path = f'{folder_path}{img_path[2]}.{filetype}'
-        simba_attack_image(img_path, eps=epsilon, max_steps=10000)
+        simba_attack_image(img_path, 
+                           eps=epsilon, 
+                           mismatched_threshold=max_mismatched_bits, 
+                           max_steps=max_steps)
     else:
-        simba_attack_batch(folder_path, eps=epsilon, max_steps=10000)
+        simba_attack_batch(folder_path, 
+                           eps=epsilon, 
+                           mismatched_threshold=max_mismatched_bits, 
+                           max_steps=max_steps)

@@ -5,22 +5,6 @@ import shutil
 import glob
 import os
 
-def move_data_to_temp_ram(path, ram_size_mb=1, batch=False):
-    src_dir = path
-    dst_dir = '/Volumes/TempRAM/'
-    if not os.path.exists(dst_dir):
-        os.system(f'diskutil erasevolume HFS+ "TempRAM" `hdiutil attach -nomount ram://{ram_size_mb*2048}`')
-        print('[INFO] RAM Disk Created...')
-    else:
-        print('[INFO] RAM Disk Already Exists...')
-    for file_name in os.listdir(src_dir):
-        source = src_dir + file_name
-        destination = dst_dir + file_name
-        if os.path.isfile(source):
-            shutil.copy(source, destination)
-    print('[INFO] Files moved to temp RAM...')
-    return dst_dir
-
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
     if batch:
         for path in image_paths:
@@ -56,6 +40,14 @@ def sample_pixel(img, batch=False):
         pixel = list(map(lambda x: x[Y][X][Z], img))
     return (pixel, Y, X, Z)
 
+def count_mismatched_bits(A, B):
+    XOR = A ^ B
+    count = 0
+    while (XOR):
+        XOR = XOR & (XOR - 1)
+        count += 1
+    return count
+
 def load_img_paths(img_folder):
     if img_folder[-1] == '/':
         return glob.glob(f'{img_folder}*')
@@ -70,3 +62,23 @@ def load_img(img_path, batch=False):
         return np.array(list(map(lambda x: np.array(Image.open(x)), img_path)))
     else:
         return np.array(Image.open(img_path))
+
+def move_data_to_temp_ram(path, ram_size_mb=1, batch=False):
+    src_dir = path
+    dst_dir = '/Volumes/TempRAM/'
+    if not os.path.exists(dst_dir):
+        os.system(f'diskutil erasevolume HFS+ "TempRAM" `hdiutil attach -nomount ram://{ram_size_mb*2048}`')
+        print('[INFO] RAM Disk Created...')
+    else:
+        print('[INFO] RAM Disk Already Exists...')
+        paths = load_img_paths(dst_dir)
+        for path in paths:
+            os.remove(path)
+        print('[INFO] RAM Disk Cleared...')
+    for file_name in os.listdir(src_dir):
+        source = src_dir + file_name
+        destination = dst_dir + file_name
+        if os.path.isfile(source):
+            shutil.copy(source, destination)
+    print('[INFO] Files moved to temp RAM...')
+    return dst_dir
