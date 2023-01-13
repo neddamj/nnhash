@@ -4,8 +4,9 @@
 '''
 
 from utils import compute_hash, sample_pixel, save_img, load_img, resize_imgs, load_img_paths, move_data_to_temp_ram, count_mismatched_bits
-from data import load_cifar10, save_cifar10_to_disk
 from datetime import datetime
+from data import CIFAR10
+from tqdm import tqdm
 from PIL import Image
 import numpy as np
 import argparse
@@ -101,10 +102,10 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1,
     total_imgs = len(img_paths)
     stepsize = int(eps*255.0)
     hashes, distortion, processed = [], [], []
-    while i < max_steps:
-        if len(img_paths) == 0:
+    pbar = tqdm(range(max_steps))
+    for i in pbar:
+        if counter == 100:
             break
-        i += 1
         (pixels, Y, X, Z) = sample_pixel(imgs, batch=batch)
         (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, 
                                                                                     Y, 
@@ -117,7 +118,6 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1,
                                                                                     batch)
         nz_adds = np.nonzero(init_hashes-additive_hashes)[0]       # Get the indices of the nonzero additive hashes
         nz_subs = np.nonzero(init_hashes-subtractive_hashes)[0]    # Get the indices of the nonzero subtractive hashes
-        print(f'Iteration: {i}')
         for index in nz_adds:
             filename, filetype = img_paths[index].split('.')
             if f'{filename}.{filetype}' in processed:
@@ -156,7 +156,8 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1,
                     distortion.append(dist)
                     # Track the imgs with changed hashes
                     processed.append(f'{filename}.{filetype}')
-    logging.info(f'Total Steps: {i}\t Attack Success Rate: {100*(counter/total_imgs):.2f}%\t \
+        pbar.set_description(f'Average Distortion: {0 if len(distortion)==0 else sum(distortion)/len(distortion):.2f} Processed Images: {counter}')
+    logging.info(f'Total Steps: {i+1}\t Attack Success Rate: {100*(counter/total_imgs):.2f}%\t \
         Average Distortion: {sum(distortion)/len(distortion):.2f}\t Processed Images: {counter}')
         
 if __name__ == "__main__":
@@ -181,14 +182,15 @@ if __name__ == "__main__":
         img_path = args['img_path']
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
-    (x_train, y_train), (x_test, y_test) = load_cifar10()
-    save_cifar10_to_disk(x_train, folder_path, num_images=100)
+    cifar10 = CIFAR10()
+    (x_train, y_train), (x_test, y_test) = cifar10.load()
+    cifar10.save_to_disk(x_train, folder_path, num_images=100)
     folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.1
+    epsilon = 0.8
     max_mismatched_bits = 1
-    max_steps = 10000
+    max_steps = 5000
     logger.info(f'Epsilon: {epsilon}\tMismatched Bits Threshold: {max_mismatched_bits}\n')
 
     # Attack NeuralHash
@@ -196,12 +198,12 @@ if __name__ == "__main__":
         _, _, path, filetype = img_path.split('.')
         img_path = path.split('/')
         img_path = f'{folder_path}{img_path[2]}.{filetype}'
-        simba_attack_image(img_path, 
+        simba_attack_image(img_path=img_path, 
                            eps=epsilon, 
                            mismatched_threshold=max_mismatched_bits, 
                            max_steps=max_steps)
     else:
-        simba_attack_batch(folder_path, 
+        simba_attack_batch(folder_path=folder_path, 
                            eps=epsilon, 
                            mismatched_threshold=max_mismatched_bits, 
                            max_steps=max_steps)
