@@ -1,6 +1,6 @@
 '''
-    Usage: python3 untargeted_simba_attack.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
-           python3 untargeted_simba_attack.py --batch True --folder_path '../images/'                                   % Batch Image Attack
+    Usage: python3 simba_attack_targeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
+           python3 simba_attack_targeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
 from simba import get_hash_of_batch, get_hash_of_imgs
@@ -15,46 +15,49 @@ import logging
 import copy
 import cv2
 
-def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
+def simba_attack_image(img_path, target_path, eps, max_steps=5000, mismatched_threshold=1):
     filename, filetype = img_path.split('.')
+    target_filename, target_filetype = target_path.split('.')
     # Initialize images
     img = load_img(img_path)
-    add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
+    orig_img, add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img), copy.deepcopy(img)
     init_hash = compute_hash(img_path)
-    i = 0
+    variable_hash = init_hash
+    # Calculate hash of target
+    target_hash = compute_hash(target_path)
+    counter = 0
     stepsize = int(eps*255.0)
-    while i < max_steps:
-        i += 1
+    while True:
+        counter += 1
         (pixel, Y, X, Z) = sample_pixel(img)
-        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_imgs(pixel, 
-                                                                               Y, 
-                                                                               X, 
-                                                                               Z,
-                                                                               img_path, 
-                                                                               add_img, 
-                                                                               sub_img, 
-                                                                               stepsize)
-        print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tSub Hash: {hex(subtractive_hash)}')
-        if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
-            if count_mismatched_bits(init_hash, additive_hash) >= mismatched_threshold:
-                # calculate l2 distortion 
-                dist = np.linalg.norm((add_img-img)/255)
-                # replace original image by additive image and store the new hash
-                logger.info(f'Saving {filename}_add.{filetype} after {i} iterations')
-                logger.info(f'L2 Distortion: {dist:.2f} units')
-                logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
-                save_img(f'{filename}_new.{filetype}', add_img)
-                break
-        elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
-            if count_mismatched_bits(init_hash, subtractive_hash) >= mismatched_threshold:
-                # calculate l2 distortion 
-                dist = np.linalg.norm(sub_img-img/255)
-                # replace original image by subtractive image and store the new hash
-                logger.info(f'Saving {filename}_new.{filetype} after {i} iterations')
-                logger.info(f'L2 Distortion: {dist:.2f} units')
-                logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
-                save_img(f'{filename}_new.{filetype}', sub_img)
-                break
+        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_imgs( pixel, 
+                                                                                Y, 
+                                                                                X, 
+                                                                                Z,
+                                                                                img_path, 
+                                                                                add_img, 
+                                                                                sub_img, 
+                                                                                stepsize)
+        if abs(target_hash-additive_hash) < abs(target_hash-subtractive_hash):
+            print(f'Replacing the previous image with the additive image after {counter} steps')
+            img = add_img
+            add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
+            variable_hash = additive_hash
+        elif abs(target_hash-additive_hash) > abs(target_hash-subtractive_hash):
+            print(f'Replacing the previous image with the subtractive image after {counter} steps')
+            img = sub_img
+            add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
+            variable_hash = subtractive_hash
+        
+        if count_mismatched_bits(variable_hash-target_hash) <= mismatched_threshold:
+            # Calculate l2 distortion 
+            dist = np.linalg.norm(img/255.0-orig_img/255.0)
+            # Save the new image
+            logger.info(f'Saving {filename}.{filetype} after {counter} iterations')
+            logger.info(f'L2 Distortion: {dist:.2f} units')
+            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(variable_hash)}\tTarget Hash: {hex(target_hash)}')
+            save_img(f'{filename}_new.{filetype}', add_img)
+            break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
 
 def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
@@ -144,14 +147,14 @@ if __name__ == "__main__":
     folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.3
+    epsilon = 0.4
     max_mismatched_bits = 8
     max_steps = 5000
 
     # Configure logging
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y_%H:%M:%S")
-    logging.basicConfig(filename=f'../logs/untargeted/Eps-{epsilon}_Bits-{max_mismatched_bits}_{dt_string}.log',
+    logging.basicConfig(filename=f'../logs/targeted/Eps-{epsilon}_Bits-{max_mismatched_bits}_{dt_string}.log',
                         format='%(asctime)s %(message)s',
                         filemode='w')
     logger = logging.getLogger()
