@@ -2,3 +2,6 @@ src/nhcalc
 .DS_Store
 images
 logs
+figs
+nnhash
+__pycache__
