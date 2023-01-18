@@ -1,6 +1,6 @@
 '''
-    Usage: python3 simba_attack_untargeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
-           python3 simba_attack_untargeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
+    Usage: python simba_untargeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
+           python simba_untargeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
 from simba import get_hash_of_batch, get_hash_of_imgs
@@ -13,7 +13,6 @@ import numpy as np
 import argparse
 import logging
 import copy
-import cv2
 
 def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
     filename, filetype = img_path.split('.')
@@ -123,7 +122,7 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1,
                     processed.append(f'{filename}.{filetype}')
         pbar.set_description(f'Average Distortion: {0 if len(distortion)==0 else sum(distortion)/len(distortion):.2f} Processed Images: {counter}')
     logging.info(f'Total Steps: {i+1}\t Attack Success Rate: {100*(counter/total_imgs):.2f}%\t \
-        Average Distortion: {sum(distortion)/len(distortion):.2f}\t Processed Images: {counter}')
+        Average Distortion: {0 if len(distortion)==0 else sum(distortion)/len(distortion):.2f}\t Processed Images: {counter}')
         
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -144,8 +143,8 @@ if __name__ == "__main__":
     folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.1
-    max_mismatched_bits = 8
+    epsilon = 0.4
+    max_mismatched_bits = 16
     max_steps = 5000
 
     # Configure logging

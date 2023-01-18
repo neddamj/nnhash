@@ -1,6 +1,6 @@
 '''
-    Usage: python3 simba_attack_targeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
-           python3 simba_attack_targeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
+    Usage: python simba_targeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
+           python simba_targeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
 from simba import get_hash_of_batch, get_hash_of_imgs
