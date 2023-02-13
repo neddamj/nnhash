@@ -1,5 +1,5 @@
 '''
-    Usage: python simba_untargeted.py --batch False --folder_path '../images/' --img_path '../images/02.jpeg'   % Single Image Attack
+    Usage: python simba_untargeted.py --batch False --folder_path '../images/' --img_path '../images/2.jpeg'   % Single Image Attack
            python simba_untargeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
@@ -143,9 +143,9 @@ if __name__ == "__main__":
     folder_path = move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.4
-    max_mismatched_bits = 16
-    max_steps = 5000
+    epsilon = 0.5
+    max_mismatched_bits = 24
+    max_steps = 10000
 
     # Configure logging
     now = datetime.now()

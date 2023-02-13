@@ -5,6 +5,12 @@ import shutil
 import glob
 import os
 
+def compute_distance(x_ori, x_pert, constraint = 'l2'):
+	if constraint == 'l2':
+		return np.linalg.norm(x_ori/255.0 - x_pert/255.0)
+	elif constraint == 'linf':
+		return np.max(abs(x_ori/255.0 - x_pert/255.0))
+
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
     if batch:
         for path in image_paths:
