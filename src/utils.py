@@ -5,22 +5,14 @@ import shutil
 import glob
 import os
 
-def compute_distance(x_ori, x_pert, constraint = 'l2'):
-	if constraint == 'l2':
-		return np.linalg.norm(x_ori/255.0 - x_pert/255.0)
-	elif constraint == 'linf':
-		return np.max(abs(x_ori/255.0 - x_pert/255.0))
-
-def resize_imgs(image_paths, new_size=(512, 512), batch=False):
-    if batch:
-        for path in image_paths:
-            img = Image.open(path)
-            img = img.resize(new_size)
-            img.save(path)
-    else:
-        img = Image.open(image_paths)
-        img = img.resize(new_size)
-        img.save(image_paths)
+## Adversarial Helper Functions
+def distance(x, y, type='l2'):
+    if type == 'l2':
+        return np.linalg.norm(x/255.0 - y/255.0)
+    elif type == 'linf':
+        return np.max(abs(x/255.0 - y/255.0))
+    elif type == 'hamming':
+        return bin(x^y).count('1')
 
 def compute_hash(image_path, batch=False):
     hashing_file_name = './nhcalc'
@@ -46,13 +38,18 @@ def sample_pixel(img, batch=False):
         pixel = list(map(lambda x: x[Y][X][Z], img))
     return (pixel, Y, X, Z)
 
-def count_mismatched_bits(A, B):
-    XOR = A ^ B
-    count = 0
-    while (XOR):
-        XOR = XOR & (XOR - 1)
-        count += 1
-    return count
+
+## Data Helper Functions
+def resize_imgs(image_paths, new_size=(512, 512), batch=False):
+    if batch:
+        for path in image_paths:
+            img = Image.open(path)
+            img = img.resize(new_size)
+            img.save(path)
+    else:
+        img = Image.open(image_paths)
+        img = img.resize(new_size)
+        img.save(image_paths)
 
 def load_img_paths(img_folder):
     if img_folder[-1] == '/':

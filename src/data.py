@@ -8,7 +8,7 @@ from utils import save_img
 class CIFAR10:
     def load(self):
         (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
-        return (x_train, y_train), (x_test, y_test)
+        return x_train
 
     def display(self, data, label):
         dist = np.random.randint(low=0, high=10000, size=100)
@@ -34,7 +34,7 @@ class CIFAR10:
 class IMAGENETTE:
     def load(self, split='train'):
         ds = tfds.load(
-            name='imagenette/160px-v2',
+            name='imagenette/320px-v2',
             split=split,
             shuffle_files=True
         )
