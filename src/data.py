@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow_datasets as tfds
 
-from utils import save_img
+from utils import save_img, resize_imgs
 
 class CIFAR10:
     def load(self):
@@ -46,6 +46,7 @@ class IMAGENETTE:
         for i, example in enumerate(data):
             img = example['image']
             save_img(f'{path}{i+1}.jpeg', img)
+            resize_imgs(f'{path}{i+1}.jpeg', new_size=(224,224))
             if i == num_images-1:
                 break
         print('[INFO] Images saved')

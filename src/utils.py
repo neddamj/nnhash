@@ -12,6 +12,8 @@ def distance(x, y, type='l2'):
     elif type == 'linf':
         return np.max(abs(x/255.0 - y/255.0))
     elif type == 'hamming':
+        # x and y in this case refer to the hash values of the 2 images
+        # rather than the images themselves
         return bin(x^y).count('1')
 
 def compute_hash(image_path, batch=False):
@@ -24,6 +26,11 @@ def compute_hash(image_path, batch=False):
         hashes = hashes[1::3]
         return np.array(list(map(lambda x: int(x,16), hashes)))
     else:
+        # Handle the input when an image is supplied instead of the path
+        if type(image_path) == np.ndarray:
+            path = '../images/hash.jpeg'
+            save_img(path, image_path)
+            image_path = path
         output = subprocess.check_output([hashing_file_name, image_path])
         hash = output.strip().split()
         return int(hash[1], 16)
