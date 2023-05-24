@@ -1,5 +1,5 @@
 '''
-    Usage: python simba_untargeted.py --batch False --folder_path '../images/' --img_path '../images/2.jpeg'   % Single Image Attack
+    Usage: python simba_untargeted.py --batch False --folder_path '../images/' --img_path '../images/1.jpeg'    % Single Image Attack
            python simba_untargeted.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
 
@@ -15,8 +15,7 @@ import logging
 import utils
 import copy
 
-
-def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
+def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_threshold=1):
     filename, filetype = img_path.split('.')
     # Initialize images
     img = utils.load_img(img_path)
@@ -35,7 +34,9 @@ def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
                                                                                add_img, 
                                                                                sub_img, 
                                                                                stepsize)
-        print(f'Iteration: {i} \tAdd Hash: {(additive_hash)} \tSub Hash: {(subtractive_hash)} \tHamming Dist: {utils.distance(init_hash, additive_hash, "hamming")}')
+        print(f'Iteration: {i} \tAdd Hash: {(additive_hash)} \tAdd Hamm Dist: {utils.distance(init_hash, additive_hash, "hamming")} ' +
+            f'\tSub Hash: {(subtractive_hash)} \tSub Hamm Dist: {utils.distance(init_hash, subtractive_hash, "hamming")}')
+        simba_filename = f'{filename}_new.{filetype}'
         if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
             if utils.distance(init_hash, additive_hash, 'hamming') >= mismatched_threshold:
                 # calculate l2 distortion 
@@ -44,7 +45,7 @@ def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
                 logger.info(f'Saving {filename}_add.{filetype} after {i} iterations')
                 logger.info(f'L2 Distortion: {dist:.2f} units')
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
-                utils.save_img(f'{filename}_new.{filetype}', add_img)
+                utils.save_img(simba_filename, add_img)
                 break
         elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
             if utils.distance(init_hash, subtractive_hash, 'hamming') >= mismatched_threshold:
@@ -54,9 +55,10 @@ def simba_attack_image(img_path, eps, max_steps=5000, mismatched_threshold=1):
                 logger.info(f'Saving {filename}_new.{filetype} after {i} iterations')
                 logger.info(f'L2 Distortion: {dist:.2f} units')
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
-                utils.save_img(f'{filename}_new.{filetype}', sub_img)
+                utils.save_img(simba_filename, sub_img)
                 break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
+    return (simba_filename, i)
 
 def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
     img_paths = utils.load_img_paths(folder_path)
@@ -150,7 +152,7 @@ if __name__ == "__main__":
 
     # Hyperparams
     epsilon = 0.9
-    max_mismatched_bits = 1
+    max_mismatched_bits = 16
     max_steps = 5000
 
     # Configure logging
@@ -171,6 +173,7 @@ if __name__ == "__main__":
         img_path = f'{folder_path}{img_path[2]}.{filetype}'
         simba_attack_image(img_path=img_path, 
                            eps=epsilon, 
+                           logger=logger,
                            mismatched_threshold=max_mismatched_bits, 
                            max_steps=max_steps)
     else:
