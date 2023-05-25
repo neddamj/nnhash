@@ -38,6 +38,7 @@ def simba_attack_image(img_path, target_path, eps, max_steps=5000, mismatched_th
                                                                                 add_img, 
                                                                                 sub_img, 
                                                                                 stepsize)
+        simba_filename = f'{filename}_new.{filetype}'
         if abs(target_hash-additive_hash) < abs(target_hash-subtractive_hash):
             if abs(target_hash-additive_hash) < abs(target_hash-closest_hash):
                 dist = np.linalg.norm(add_img/255.0-orig_img/255.0)
@@ -45,7 +46,7 @@ def simba_attack_image(img_path, target_path, eps, max_steps=5000, mismatched_th
                 img = add_img
                 add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
                 variable_hash, closest_hash = additive_hash, additive_hash    
-                save_img(f'{filename}_new.{filetype}', add_img)
+                save_img(simba_filename, add_img)
         elif abs(target_hash-additive_hash) > abs(target_hash-subtractive_hash):
             if abs(target_hash-subtractive_hash) < abs(target_hash-closest_hash):
                 dist = np.linalg.norm(sub_img/255.0-orig_img/255.0)
@@ -53,19 +54,20 @@ def simba_attack_image(img_path, target_path, eps, max_steps=5000, mismatched_th
                 img = sub_img
                 add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
                 variable_hash, closest_hash = subtractive_hash, subtractive_hash
-                save_img(f'{filename}_new.{filetype}', sub_img)
+                save_img(simba_filename, sub_img)
         
-        if abs(variable_hash-target_hash) <= 2**mismatched_threshold:
+        if distance(variable_hash,target_hash, 'hamming') <= mismatched_threshold:
             # Calculate l2 distortion 
             dist = np.linalg.norm(img/255.0-orig_img/255.0)
             # Save the new image
             logger.info(f'Saving {filename}.{filetype} after {counter+1} iterations')
             logger.info(f'L2 Distortion: {dist:.2f} units')
             logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(variable_hash)}\tTarget Hash: {hex(target_hash)}')
-            save_img(f'{filename}_new.{filetype}', img)
+            save_img(simba_filename, img)
             break
     print(f'\nThe distortion to the original image is {dist:.2f} units')
     logging.info(f'Execution was aborted after {num_steps}/{max_steps} queries')
+    return simba_filename, num_steps
 
 def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
     pass
