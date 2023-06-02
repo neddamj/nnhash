@@ -16,8 +16,8 @@ def distance(x, y, type='l2'):
         # rather than the images themselves
         return bin(x^y).count('1')
 
-def compute_hash(image_path, batch=False):
-    hashing_file_name = './nhcalc'
+def compute_hash(image_path, batch=False, hash_file_path='../nhcalc'):
+    hashing_file_name = hash_file_path
     if batch:
         image_path.insert(0, hashing_file_name)
         output = subprocess.check_output(image_path)
@@ -28,23 +28,16 @@ def compute_hash(image_path, batch=False):
     else:
         # Handle the input when an image is supplied instead of the path
         if type(image_path) == np.ndarray:
-            path = '../images/hash.jpeg'
-            save_img(path, image_path)
+            try:
+                path = '../images/hash.jpeg'
+                save_img(path, image_path)
+            except:
+                path = '../../images/hash.jpeg'
+                save_img(path, image_path)
             image_path = path
         output = subprocess.check_output([hashing_file_name, image_path])
         hash = output.strip().split()
         return int(hash[1], 16)
-
-def sample_pixel(img, batch=False):
-    if not batch:
-        (H, W) = img.shape[0], img.shape[1]
-        (Y, X, Z) = (int(H*np.random.random(1)), int(W*np.random.random(1)), int(3*np.random.random(1)))
-        pixel = img[Y][X][Z]
-    else:   
-        (Y, X, Z) = (int(512*np.random.random(1)), int(512*np.random.random(1)), int(3*np.random.random(1)))
-        pixel = list(map(lambda x: x[Y][X][Z], img))
-    return (pixel, Y, X, Z)
-
 
 ## Data Helper Functions
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):

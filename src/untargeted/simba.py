@@ -1,7 +1,9 @@
 '''
-    Usage: python simba.py --batch False --folder_path '../images/' --img_path '../images/1.jpeg'    % Single Image Attack
+    Usage: python simba.py --batch False --folder_path '../../images/' --img_path '../../images/1.jpeg'    % Single Image Attack
            python simba.py --batch True --folder_path '../images/'                                   % Batch Image Attack
 '''
+import sys
+sys.path.append('..')
 
 from data import CIFAR10, IMAGENETTE
 from datetime import datetime
@@ -13,6 +15,16 @@ import argparse
 import logging
 import utils
 import copy
+
+def sample_pixel(img, batch=False):
+    if not batch:
+        (H, W) = img.shape[0], img.shape[1]
+        (Y, X, Z) = (int(H*np.random.random(1)), int(W*np.random.random(1)), int(3*np.random.random(1)))
+        pixel = img[Y][X][Z]
+    else:   
+        (Y, X, Z) = (int(512*np.random.random(1)), int(512*np.random.random(1)), int(3*np.random.random(1)))
+        pixel = list(map(lambda x: x[Y][X][Z], img))
+    return (pixel, Y, X, Z)
 
 def get_hash_of_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize):
     filename, filetype = path.split('.') 
@@ -59,7 +71,7 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
     stepsize = int(eps*255.0)
     while i < max_steps:
         i += 1
-        (pixel, Y, X, Z) = utils.sample_pixel(img)
+        (pixel, Y, X, Z) = sample_pixel(img)
         (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_imgs(pixel, 
                                                                                Y, 
                                                                                X, 
@@ -108,7 +120,7 @@ def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1,
     for i in pbar:
         if counter == 100:
             break
-        (pixels, Y, X, Z) = utils.sample_pixel(imgs, batch=batch)
+        (pixels, Y, X, Z) = sample_pixel(imgs, batch=batch)
         (add_imgs, additive_hashes, sub_imgs, subtractive_hashes) = get_hash_of_batch(pixels, 
                                                                                     Y, 
                                                                                     X, 
@@ -192,7 +204,7 @@ if __name__ == "__main__":
     # Configure logging
     now = datetime.now()
     dt_string = now.strftime("%d-%m-%Y_%H:%M:%S")
-    logging.basicConfig(filename=f'../logs/untargeted/Eps-{epsilon}_Bits-{max_mismatched_bits}_{dt_string}.log',
+    logging.basicConfig(filename=f'../../logs/untargeted/Eps-{epsilon}_Bits-{max_mismatched_bits}_{dt_string}.log',
                         format='%(asctime)s %(message)s',
                         level='DEBUG',
                         filemode='w',
@@ -202,7 +214,7 @@ if __name__ == "__main__":
 
     # Attack NeuralHash
     if not batch:
-        _, _, path, filetype = img_path.split('.')
+        _, _, _, _, path, filetype = img_path.split('.')
         img_path = path.split('/')
         img_path = f'{folder_path}{img_path[2]}.{filetype}'
         simba_attack_image(img_path=img_path, 

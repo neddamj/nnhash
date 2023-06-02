@@ -1,4 +1,7 @@
 # %%
+import sys
+sys.path.append('..')
+
 from data import CIFAR10, IMAGENETTE
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -7,15 +10,13 @@ import numpy as np
 import utils
 import copy
 
-def decision_fn(orig_img, new_img, threshold=1):
+def decision_fn(orig_img, new_img, threshold=40):
     # Save the images and get their hashes
     orig_hash, new_hash = utils.compute_hash(orig_img), utils.compute_hash(new_img)
     # Make the decision based on the threshold
     hamming_dist = utils.distance(orig_hash, new_hash, 'hamming')
     print(f'Hamming Dist: {hamming_dist}')
-    if hamming_dist >= threshold:
-        return True
-    return False
+    return hamming_dist >= threshold
 
 def bin_boundary_search(orig_img, adv_img, l2_threshold, hamming_threshold, max_iters=15):
     print('[INFO] Starting Boundary Search...')
