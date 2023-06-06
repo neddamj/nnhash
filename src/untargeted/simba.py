@@ -86,6 +86,9 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
         simba_filename = f'{filename}_new.{filetype}'
         if add_hamm_dist > sub_hamm_dist:
             if add_hamm_dist > min_diff:
+                # Only update the adv image when its hamming dist is greater than that
+                # of the previous adv image
+                min_diff = add_hamm_dist
                 utils.save_img(simba_filename, add_img)
             if add_hamm_dist >= mismatched_threshold:
                 # calculate l2 distortion 
@@ -97,7 +100,10 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 utils.save_img(simba_filename, add_img)
                 break
         elif add_hamm_dist < sub_hamm_dist:
-            if add_hamm_dist > min_diff:
+            if sub_hamm_dist > min_diff:
+                # Only update the adv image when its hamming dist is greater than that
+                # of the previous adv image
+                min_diff = sub_hamm_dist
                 utils.save_img(simba_filename, sub_img)
             if sub_hamm_dist >= mismatched_threshold:
                 # calculate l2 distortion 
