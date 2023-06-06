@@ -34,7 +34,7 @@ def get_hash_of_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize):
     utils.save_img(f'{filename}_add.{filetype}', add_img)
     add_hash = utils.compute_hash(f'{filename}_add.{filetype}')
     # Subtract value from the pixel and get the hash 
-    sub_img[H][W] = pixels - stepsize
+    sub_img[H][W][C] = pixels - stepsize
     sub_img = np.clip(sub_img, 0.0, 255.0)
     utils.save_img(f'{filename}_sub.{filetype}', sub_img)
     sub_hash = utils.compute_hash(f'{filename}_sub.{filetype}')
@@ -67,7 +67,7 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
     img = utils.load_img(img_path)
     add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
     init_hash = utils.compute_hash(img_path)
-    i = 0
+    min_diff, i = 0, 0
     stepsize = int(eps*255.0)
     while i < max_steps:
         i += 1
@@ -80,11 +80,14 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                                                                                add_img, 
                                                                                sub_img, 
                                                                                stepsize)
-        print(f'Iteration: {i} \tAdd Hash: {(additive_hash)} \tAdd Hamm Dist: {utils.distance(init_hash, additive_hash, "hamming")} ' +
-            f'\tSub Hash: {(subtractive_hash)} \tSub Hamm Dist: {utils.distance(init_hash, subtractive_hash, "hamming")}')
+        add_hamm_dist, sub_hamm_dist = utils.distance(init_hash, additive_hash, "hamming"), utils.distance(init_hash, subtractive_hash, "hamming")
+        print(f'Iteration: {i} \tAdd Hash: {(additive_hash)} \tAdd Hamm Dist: {add_hamm_dist} ' +
+            f'\tSub Hash: {(subtractive_hash)} \tSub Hamm Dist: {sub_hamm_dist}')
         simba_filename = f'{filename}_new.{filetype}'
-        if abs(init_hash-additive_hash) > abs(init_hash-subtractive_hash):
-            if utils.distance(init_hash, additive_hash, 'hamming') >= mismatched_threshold:
+        if add_hamm_dist > sub_hamm_dist:
+            if add_hamm_dist > min_diff:
+                utils.save_img(simba_filename, add_img)
+            if add_hamm_dist >= mismatched_threshold:
                 # calculate l2 distortion 
                 dist = utils.distance(add_img, img, 'l2')
                 # replace original image by additive image and store the new hash
@@ -93,8 +96,10 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
                 utils.save_img(simba_filename, add_img)
                 break
-        elif abs(init_hash-additive_hash) < abs(init_hash-subtractive_hash):
-            if utils.distance(init_hash, subtractive_hash, 'hamming') >= mismatched_threshold:
+        elif add_hamm_dist < sub_hamm_dist:
+            if add_hamm_dist > min_diff:
+                utils.save_img(simba_filename, sub_img)
+            if sub_hamm_dist >= mismatched_threshold:
                 # calculate l2 distortion 
                 dist = utils.distance(sub_img, img, 'l2')
                 # replace original image by subtractive image and store the new hash
@@ -103,7 +108,6 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
                 utils.save_img(simba_filename, sub_img)
                 break
-    print(f'\nThe distortion to the original image is {dist:.2f} units')
     return (simba_filename, i)
 
 def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
@@ -187,6 +191,7 @@ if __name__ == "__main__":
         img_path = args['img_path']
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
+    '''
     dataset = 'imagenette'    
     if dataset == 'cifar10':
         images = CIFAR10()
@@ -194,6 +199,7 @@ if __name__ == "__main__":
         images = IMAGENETTE()
     x = images.load()
     images.save_to_disk(x, folder_path, num_images=100)
+    '''
     folder_path = utils.move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams

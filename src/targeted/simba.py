@@ -32,7 +32,7 @@ def get_hash_of_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
     utils.save_img(f'{filename}_add.{filetype}', add_img)
     add_hash = utils.compute_hash(f'{filename}_add.{filetype}')
     # Subtract value from the pixel and get the hash 
-    sub_img[H][W] = pixels - stepsize
+    sub_img[H][W][C] = pixels - stepsize
     sub_img = np.clip(sub_img, 0.0, 255.0)
     utils.save_img(f'{filename}_sub.{filetype}', sub_img)
     sub_hash = utils.compute_hash(f'{filename}_sub.{filetype}')
