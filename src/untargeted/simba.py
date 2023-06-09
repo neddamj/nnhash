@@ -29,12 +29,12 @@ def sample_pixel(img, batch=False):
 def get_hash_of_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize):
     filename, filetype = path.split('.') 
     # Add value to the pixel and get the hash 
-    add_img[H][W][C] = pixels + stepsize
+    add_img[H][W] = pixels + stepsize
     add_img = np.clip(add_img, 0.0, 255.0)
     utils.save_img(f'{filename}_add.{filetype}', add_img)
     add_hash = utils.compute_hash(f'{filename}_add.{filetype}')
     # Subtract value from the pixel and get the hash 
-    sub_img[H][W][C] = pixels - stepsize
+    sub_img[H][W] = pixels - stepsize
     sub_img = np.clip(sub_img, 0.0, 255.0)
     utils.save_img(f'{filename}_sub.{filetype}', sub_img)
     sub_hash = utils.compute_hash(f'{filename}_sub.{filetype}')
@@ -81,8 +81,8 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                                                                                sub_img, 
                                                                                stepsize)
         add_hamm_dist, sub_hamm_dist = utils.distance(init_hash, additive_hash, "hamming"), utils.distance(init_hash, subtractive_hash, "hamming")
-        print(f'Iteration: {i} \tAdd Hash: {(additive_hash)} \tAdd Hamm Dist: {add_hamm_dist} ' +
-            f'\tSub Hash: {(subtractive_hash)} \tSub Hamm Dist: {sub_hamm_dist}')
+        print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tAdd Hamm Dist: {add_hamm_dist} ' +
+            f'\tSub Hash: {hex(subtractive_hash)} \tSub Hamm Dist: {sub_hamm_dist}')
         simba_filename = f'{filename}_new.{filetype}'
         if add_hamm_dist > sub_hamm_dist:
             if add_hamm_dist > min_diff:
