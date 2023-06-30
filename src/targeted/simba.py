@@ -24,7 +24,7 @@ def sample_pixel(img, batch=False):
         pixel = list(map(lambda x: x[Y][X][Z], img))
     return (pixel, Y, X, Z)
 
-def get_hash_of_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
+def perturb_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
     filename, filetype = path.split('.') 
     # Add value to the pixel and get the hash 
     add_img[H][W][C] = pixels + stepsize
@@ -47,13 +47,13 @@ def simba_attack_image(img_path, target_path, eps, logger, max_steps=5000, misma
     init_hash = utils.compute_hash(img_path)
     # Calculate hash of target
     target_hash = utils.compute_hash(target_path)
-    variable_hash, closest_hash = copy.deepcopy(init_hash), copy.deepcopy(init_hash)
+    closest_hash = copy.deepcopy(init_hash)
     num_steps = 0
     stepsize = int(eps*255.0)
     for counter in range(max_steps):
         num_steps = counter+1
         (pixel, Y, X, Z) = sample_pixel(orig_img)
-        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_img(pixel, 
+        (add_img, additive_hash, sub_img, subtractive_hash) = perturb_img(pixel, 
                                                                 Y, 
                                                                 X, 
                                                                 Z,
@@ -68,26 +68,27 @@ def simba_attack_image(img_path, target_path, eps, logger, max_steps=5000, misma
         print(f'{num_steps}| Add Hamming Dist: {add_hamm_dist}\t Sub Hamming Dist: {sub_hamm_dist}')
         if add_hamm_dist < sub_hamm_dist:
             if add_hamm_dist <= closest_hamm_dist:
-                logging.info(f'Steps: {counter+1}\t Current Hash:{additive_hash}\tTarget Hash: {target_hash}')
+                print(f'Steps: {counter+1}\t Current Hash:{additive_hash}\tTarget Hash: {target_hash}')
                 add_img, sub_img = copy.deepcopy(add_img), copy.deepcopy(add_img)
-                variable_hash, closest_hash = additive_hash, additive_hash   
+                closest_hash = additive_hash 
                 closest_img = add_img
                 utils.save_img(simba_filename, closest_img)
         if add_hamm_dist > sub_hamm_dist:
             if sub_hamm_dist <= closest_hamm_dist:
-                logging.info(f'Steps: {counter+1}\t Current Hash:{subtractive_hash}\tTarget Hash: {target_hash}')
+                print(f'Steps: {counter+1}\t Current Hash:{subtractive_hash}\tTarget Hash: {target_hash}')
                 add_img, sub_img = copy.deepcopy(sub_img), copy.deepcopy(sub_img)
-                variable_hash, closest_hash = subtractive_hash, subtractive_hash
+                closest_hash = subtractive_hash
                 closest_img = sub_img
                 utils.save_img(simba_filename, closest_img)
         
-        if utils.distance(variable_hash,target_hash, 'hamming') <= mismatched_threshold:
+        if closest_hamm_dist <= mismatched_threshold:
+            print(f'Closest Hamming Dist; {closest_hamm_dist}')
             # Calculate l2 distortion 
             dist = utils.distance(closest_img, target_img, 'l2')
             # Save the new image
             logger.info(f'Saving {simba_filename} after {counter+1} iterations')
             logger.info(f'L2 Distortion: {dist:.2f} units')
-            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(variable_hash)}\tTarget Hash: {hex(target_hash)}')
+            logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(closest_hash)}\tTarget Hash: {hex(target_hash)}')
             utils.save_img(simba_filename, closest_img)
             break
     logging.info(f'Execution was aborted after {num_steps}/{max_steps} queries')
@@ -118,9 +119,9 @@ if __name__ == "__main__":
     folder_path = utils.move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
-    epsilon = 0.7
-    max_mismatched_bits = 48
-    max_steps =10
+    epsilon = 0.9
+    max_mismatched_bits = 40
+    max_steps = 1000
 
     # Configure logging
     now = datetime.now()

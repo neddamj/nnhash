@@ -1,3 +1,4 @@
+from skimage.metrics import structural_similarity as ssim
 from PIL import Image
 import numpy as np
 import subprocess
@@ -11,6 +12,8 @@ def distance(x, y, type='l2'):
         return np.linalg.norm(x/255.0 - y/255.0)
     elif type == 'linf':
         return np.max(abs(x/255.0 - y/255.0))
+    elif type == 'ssim':
+        return ssim(x, y, channel_axis=-1)
     elif type == 'hamming':
         # x and y in this case refer to the hash values of the 2 images
         # rather than the images themselves

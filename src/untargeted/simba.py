@@ -26,7 +26,7 @@ def sample_pixel(img, batch=False):
         pixel = list(map(lambda x: x[Y][X][Z], img))
     return (pixel, Y, X, Z)
 
-def get_hash_of_imgs(pixels, H, W, C, path, add_img, sub_img, stepsize):
+def perturb_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
     filename, filetype = path.split('.') 
     # Add value to the pixel and get the hash 
     add_img[H][W] = pixels + stepsize
@@ -72,7 +72,7 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
     while i < max_steps:
         i += 1
         (pixel, Y, X, Z) = sample_pixel(img)
-        (add_img, additive_hash, sub_img, subtractive_hash) = get_hash_of_imgs(pixel, 
+        (add_img, additive_hash, sub_img, subtractive_hash) = perturb_img(pixel, 
                                                                                Y, 
                                                                                X, 
                                                                                Z,
@@ -197,7 +197,7 @@ if __name__ == "__main__":
         img_path = args['img_path']
     if args['folder_path'] is not None:
         folder_path = args['folder_path']
-    '''
+    
     dataset = 'imagenette'    
     if dataset == 'cifar10':
         images = CIFAR10()
@@ -205,7 +205,7 @@ if __name__ == "__main__":
         images = IMAGENETTE()
     x = images.load()
     images.save_to_disk(x, folder_path, num_images=100)
-    '''
+    
     folder_path = utils.move_data_to_temp_ram(folder_path, ram_size_mb=50)
 
     # Hyperparams
