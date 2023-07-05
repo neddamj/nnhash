@@ -40,27 +40,6 @@ def perturb_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
     sub_hash = utils.compute_hash(f'{filename}_sub.{filetype}')
     return (add_img, add_hash, sub_img, sub_hash)
 
-def get_hash_of_batch(pixels, H, W, C, paths, add_imgs, sub_imgs, stepsize, batch):
-    add_ims, sub_ims = [], []
-    add_paths, sub_paths = [], []
-    for i, path in enumerate(paths):
-        filename, filetype = path.split('.')
-        # Add value to the pixel and get the hash 
-        add_imgs[i][H][W][C] = pixels[i] + stepsize
-        add_imgs[i] = np.clip(add_imgs[i], 0.0, 255.0)
-        utils.save_img(f'{filename}_add.{filetype}', add_imgs[i])
-        add_paths.append(f'{filename}_add.{filetype}')
-        add_ims.append(add_imgs[i])
-        # Subtract value from the pixel and get the hash 
-        sub_imgs[i][H][W][C] = pixels[i] - stepsize
-        sub_imgs[i] = np.clip(sub_imgs[i], 0.0, 255.0)
-        utils.save_img(f'{filename}_sub.{filetype}', sub_imgs[i])
-        sub_paths.append(f'{filename}_sub.{filetype}')
-        sub_ims.append(sub_imgs[i])
-    add_hashs = utils.compute_hash(add_paths, batch=batch)
-    sub_hashs = utils.compute_hash(sub_paths, batch=batch)
-    return (add_ims, add_hashs, sub_ims, sub_hashs) 
-
 def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_threshold=1):
     filename, filetype = img_path.split('.')
     # Initialize images
@@ -114,7 +93,32 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
                 utils.save_img(simba_filename, sub_img)
                 break
-    return (simba_filename, i)
+    num_queries = 2*i + 1
+    return (simba_filename, num_queries)
+
+######################
+## Batch Processing ##
+######################
+def get_hash_of_batch(pixels, H, W, C, paths, add_imgs, sub_imgs, stepsize, batch):
+    add_ims, sub_ims = [], []
+    add_paths, sub_paths = [], []
+    for i, path in enumerate(paths):
+        filename, filetype = path.split('.')
+        # Add value to the pixel and get the hash 
+        add_imgs[i][H][W][C] = pixels[i] + stepsize
+        add_imgs[i] = np.clip(add_imgs[i], 0.0, 255.0)
+        utils.save_img(f'{filename}_add.{filetype}', add_imgs[i])
+        add_paths.append(f'{filename}_add.{filetype}')
+        add_ims.append(add_imgs[i])
+        # Subtract value from the pixel and get the hash 
+        sub_imgs[i][H][W][C] = pixels[i] - stepsize
+        sub_imgs[i] = np.clip(sub_imgs[i], 0.0, 255.0)
+        utils.save_img(f'{filename}_sub.{filetype}', sub_imgs[i])
+        sub_paths.append(f'{filename}_sub.{filetype}')
+        sub_ims.append(sub_imgs[i])
+    add_hashs = utils.compute_hash(add_paths, batch=batch)
+    sub_hashs = utils.compute_hash(sub_paths, batch=batch)
+    return (add_ims, add_hashs, sub_ims, sub_hashs) 
 
 def simba_attack_batch(folder_path, eps, max_steps=5000, mismatched_threshold=1, batch=True):
     img_paths = utils.load_img_paths(folder_path)
