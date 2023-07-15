@@ -85,7 +85,7 @@ def hop_skip_jump_attack(orig_img_path,
             print('[INFO] Stepsize too small...')
             return (boundary_img, num_queries+search_queries)
         # Estimate the gradient direction
-        sample_count = min(int(grad_queries * np.sqrt(idx)), 100)
+        sample_count = min(int(grad_queries * np.sqrt(idx)), grad_queries*10)
         grad_direction, grad_queries = estimate_grad_direction(boundary_img, sample_count, hamming_threshold)
         # Calculate the stepsize
         stepsize = utils.distance(orig_img, boundary_img, 'l2')/np.sqrt(idx)
@@ -96,7 +96,11 @@ def hop_skip_jump_attack(orig_img_path,
 # %% 
 if __name__ == '__main__':
     orig_img_path, target_img_path = '/Volumes/TempRAM/1.jpeg','/Volumes/TempRAM/1_new.jpeg'
-    adv_img, steps = hop_skip_jump_attack(orig_img_path=orig_img_path, target_img_path=target_img_path, max_iters=2, grad_queries=10, l2_threshold=30, hamming_threshold=10)
+    adv_img, steps = hop_skip_jump_attack(orig_img_path=orig_img_path, 
+                                          target_img_path=target_img_path, 
+                                          max_iters=2, grad_queries=10, 
+                                          l2_threshold=30, 
+                                          hamming_threshold=10)
     im = Image.fromarray(adv_img.astype(np.uint8))
     im.show()
     #print(steps)
@@ -104,7 +108,4 @@ if __name__ == '__main__':
     hash1, hash2 = utils.compute_hash(orig_img), utils.compute_hash(adv_img)
     print(f'Hamming Dist: {utils.distance(hash1, hash2, "hamming")}')
     print(f"l2 Dist: {utils.distance(orig_img, adv_img, 'l2')}")
-
-
-
 
