@@ -42,6 +42,7 @@ plt.legend()
 plt.grid()
 plt.show()"""
 
+'''
 # Queries
 queries = np.array([500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000])
 
@@ -107,3 +108,4 @@ asr_sixteen_2 = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 asr_sixteen_3 = np.array([0, 0, 0, 0, 0, 0, 1, 2, 2, 2])
 asr_sixteen_4 = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 3])
 asr_sixteen_5 = np.array([])
+'''
