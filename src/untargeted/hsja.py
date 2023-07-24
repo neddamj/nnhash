@@ -85,7 +85,7 @@ def hop_skip_jump_attack(orig_img_path,
             print('[INFO] Stepsize too small...')
             return (boundary_img, num_queries+search_queries)
         # Estimate the gradient direction
-        sample_count = min(int(grad_queries * np.sqrt(idx)), grad_queries*10)
+        sample_count = min(int(grad_queries * np.sqrt(idx)), 100)
         grad_direction, grad_queries = estimate_grad_direction(boundary_img, sample_count, hamming_threshold)
         # Calculate the stepsize
         stepsize = utils.distance(orig_img, boundary_img, 'l2')/np.sqrt(idx)
@@ -98,7 +98,8 @@ if __name__ == '__main__':
     orig_img_path, target_img_path = '/Volumes/TempRAM/1.jpeg','/Volumes/TempRAM/1_new.jpeg'
     adv_img, steps = hop_skip_jump_attack(orig_img_path=orig_img_path, 
                                           target_img_path=target_img_path, 
-                                          max_iters=2, grad_queries=10, 
+                                          max_iters=2, 
+                                          grad_queries=10, 
                                           l2_threshold=30, 
                                           hamming_threshold=10)
     im = Image.fromarray(adv_img.astype(np.uint8))
