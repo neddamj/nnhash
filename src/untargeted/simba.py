@@ -16,31 +16,31 @@ import logging
 import utils
 import copy
 
-def sample_pixel(img, batch=False):
-    if not batch:
-        (H, W) = img.shape[0], img.shape[1]
-        (Y, X, Z) = (int(H*np.random.random(1)), int(W*np.random.random(1)), int(3*np.random.random(1)))
-        pixel = img[Y][X][Z]
-    else:   
-        (Y, X, Z) = (int(512*np.random.random(1)), int(512*np.random.random(1)), int(3*np.random.random(1)))
-        pixel = list(map(lambda x: x[Y][X][Z], img))
+def sample_pixel(img):
+    (H, W) = img.shape[0], img.shape[1]
+    (Y, X, Z) = (int(H*np.random.random(1)), int(W*np.random.random(1)), int(3*np.random.random(1)))
+    pixel = img[Y][X][Z]
     return (pixel, Y, X, Z)
 
-def perturb_img(pixels, H, W, C, path, add_img, sub_img, stepsize):
+def perturb_img(pixels, H, W, C, path, add_img, sub_img, stepsize, fast=False):
     filename, filetype = path.split('.') 
+    if not fast:
+        add_img[H][W][C] = pixels + stepsize
+        sub_img[H][W][C] = pixels - stepsize
+    else:
+        add_img[H][W] = pixels + stepsize
+        sub_img[H][W] = pixels - stepsize
     # Add value to the pixel and get the hash 
-    add_img[H][W] = pixels + stepsize
     add_img = np.clip(add_img, 0.0, 255.0)
     utils.save_img(f'{filename}_add.{filetype}', add_img)
     add_hash = utils.compute_hash(f'{filename}_add.{filetype}')
     # Subtract value from the pixel and get the hash 
-    sub_img[H][W] = pixels - stepsize
     sub_img = np.clip(sub_img, 0.0, 255.0)
     utils.save_img(f'{filename}_sub.{filetype}', sub_img)
     sub_hash = utils.compute_hash(f'{filename}_sub.{filetype}')
     return (add_img, add_hash, sub_img, sub_hash)
 
-def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_threshold=1):
+def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_threshold=1, l2_threshold=10, fast=False):
     filename, filetype = img_path.split('.')
     # Initialize images
     img = utils.load_img(img_path)
@@ -51,25 +51,14 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
     while i < max_steps:
         i += 1
         (pixel, Y, X, Z) = sample_pixel(img)
-        (add_img, additive_hash, sub_img, subtractive_hash) = perturb_img(pixel, 
-                                                                               Y, 
-                                                                               X, 
-                                                                               Z,
-                                                                               img_path, 
-                                                                               add_img, 
-                                                                               sub_img, 
-                                                                               stepsize)
+        (add_img, additive_hash, sub_img, subtractive_hash) = perturb_img(pixel, Y, X, Z, img_path, add_img, sub_img, stepsize, fast)
         add_hamm_dist, sub_hamm_dist = utils.distance(init_hash, additive_hash, "hamming"), utils.distance(init_hash, subtractive_hash, "hamming")
+        add_l2_dist, sub_l2_dist = utils.distance(add_img, img, 'l2'), utils.distance(sub_img, img, 'l2')
         print(f'Iteration: {i} \tAdd Hash: {hex(additive_hash)} \tAdd Hamm Dist: {add_hamm_dist} ' +
             f'\tSub Hash: {hex(subtractive_hash)} \tSub Hamm Dist: {sub_hamm_dist}')
         simba_filename = f'{filename}_new.{filetype}'
         if add_hamm_dist > sub_hamm_dist:
-            if add_hamm_dist > min_diff:
-                # Only update the adv image when its hamming dist is greater than that
-                # of the previous adv image
-                min_diff = add_hamm_dist
-                utils.save_img(simba_filename, add_img)
-            if add_hamm_dist >= mismatched_threshold:
+            if add_hamm_dist >= mismatched_threshold and add_l2_dist >= l2_threshold:
                 # calculate l2 distortion 
                 dist = utils.distance(add_img, img, 'l2')
                 # replace original image by additive image and store the new hash
@@ -78,13 +67,13 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(additive_hash)}')
                 utils.save_img(simba_filename, add_img)
                 break
-        elif add_hamm_dist < sub_hamm_dist:
-            if sub_hamm_dist > min_diff:
+            if add_hamm_dist > min_diff:
                 # Only update the adv image when its hamming dist is greater than that
                 # of the previous adv image
-                min_diff = sub_hamm_dist
-                utils.save_img(simba_filename, sub_img)
-            if sub_hamm_dist >= mismatched_threshold:
+                min_diff = add_hamm_dist
+                utils.save_img(simba_filename, add_img)
+        elif add_hamm_dist < sub_hamm_dist:
+            if sub_hamm_dist >= mismatched_threshold and sub_l2_dist >= l2_threshold:
                 # calculate l2 distortion 
                 dist = utils.distance(sub_img, img, 'l2')
                 # replace original image by subtractive image and store the new hash
@@ -93,6 +82,11 @@ def simba_attack_image(img_path, eps, logger, max_steps=10000,  mismatched_thres
                 logger.info(f'Initial Hash: {hex(init_hash)}\tNew Hash: {hex(subtractive_hash)}')
                 utils.save_img(simba_filename, sub_img)
                 break
+            if sub_hamm_dist > min_diff:
+                # Only update the adv image when its hamming dist is greater than that
+                # of the previous adv image
+                min_diff = sub_hamm_dist
+                utils.save_img(simba_filename, sub_img)
     num_queries = 2*i + 1
     return (simba_filename, num_queries)
 
@@ -215,6 +209,7 @@ if __name__ == "__main__":
     # Hyperparams
     epsilon = 0.9
     max_mismatched_bits = 16
+    l2_threshold = 20
     max_steps = 5000
 
     # Configure logging
@@ -237,7 +232,9 @@ if __name__ == "__main__":
                            eps=epsilon, 
                            logger=logger,
                            mismatched_threshold=max_mismatched_bits, 
-                           max_steps=max_steps)
+                           l2_threshold=l2_threshold,
+                           max_steps=max_steps,
+                           fast=False)
     else:
         simba_attack_batch(folder_path=folder_path, 
                            eps=epsilon, 
