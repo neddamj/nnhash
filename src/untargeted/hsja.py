@@ -35,7 +35,7 @@ def bin_boundary_search(orig_img, adv_img, l2_threshold, hamming_threshold, max_
     print('[INFO] Boundary Search Complete...')
     return adv_img, num_queries
 
-def estimate_grad_direction(img, sample_count, hamming_threshold):
+def estimate_grad(img, sample_count, hamming_threshold):
     num_queries = 0
     # Create the noise unit vectors
     noise = np.random.randn(sample_count, img.shape[0], img.shape[1], img.shape[2])
@@ -55,13 +55,13 @@ def estimate_grad_direction(img, sample_count, hamming_threshold):
     direction_estimate = sum([noise[i]*directions[i] for i in range(noise.shape[0])])
     return direction_estimate, num_queries
 
-def grad_based_update(orig_img, adv_img, grad_direction, stepsize, hamming_threshold):
+def grad_based_update(orig_img, adv_img, grad, stepsize, hamming_threshold):
     num_queries = 0
     print('[INFO] Starting gradient based update...')
     while (num_queries < 50):
         print(f'Gradient Update # {num_queries}: ', end="")
         num_queries += 1
-        new_img = adv_img + stepsize*grad_direction
+        new_img = adv_img + stepsize*grad
         if decision_fn(orig_img, new_img, hamming_threshold):
             break
         stepsize /= 2
@@ -85,11 +85,11 @@ def hop_skip_jump_attack(orig_img_path,
             print('[INFO] Stepsize too small...')
             return (boundary_img, num_queries+search_queries)
         # Estimate the gradient direction
-        sample_count = min(int(grad_queries * np.sqrt(idx)), 100)
-        grad_direction, grad_queries = estimate_grad_direction(boundary_img, sample_count, hamming_threshold)
+        sample_count = min(int(grad_queries * np.sqrt(idx)), 50)
+        grad, grad_queries = estimate_grad(boundary_img, sample_count, hamming_threshold)
         # Calculate the stepsize
         stepsize = utils.distance(orig_img, boundary_img, 'l2')/np.sqrt(idx)
-        target_img, update_queries = grad_based_update(orig_img, boundary_img, grad_direction, stepsize, hamming_threshold)
+        target_img, update_queries = grad_based_update(orig_img, boundary_img, grad, stepsize, hamming_threshold)
         num_queries += (search_queries + grad_queries + update_queries)
     return (target_img, num_queries)
 
