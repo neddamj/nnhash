@@ -8,37 +8,34 @@ import utils
 import matplotlib.pyplot as plt
 import numpy as np
 
-def nes_gradient_estimate(img, mean=0, std=0.1, sigma=0.5):
+def nes_gradient_estimate(img, mean=0, std=0.1, sigma=0.5, num_samples=100):
     def hamming_dist_loss(img, perterbed_img):
         # Compute the hamming distance 
         orig_hash = utils.compute_hash(img)
         perterbed_hash = utils.compute_hash(perterbed_img)
-        return utils.distance(orig_hash, perterbed_hash, 'hamming')/96
-    # Set random seed
-    np.random.seed(42)
-    noise_plus, noise_minus = np.random.normal(loc=mean-0.1, scale=std, size=img.shape), np.random.normal(loc=mean+0.1, scale=std, size=img.shape)
-    img_plus = img + sigma*noise_plus*255
-    img_minus = img - 255*sigma*noise_minus
+        return utils.distance(orig_hash, perterbed_hash, 'hamming')
+    grads = []
+    num_queries = 0
+    print('Estimating gradients with NES...')
+    for i in range(num_samples):
+        noise = np.random.normal(mean, std, size=img.shape)
+        new = img + sigma*noise*255
+        g = noise*hamming_dist_loss(img, new)
+        grads.append(g)
+        num_queries += 2
+    est_grad = np.mean(np.array(grads), axis=0)
+    return est_grad/(2*np.pi*sigma), num_queries
 
-    plus_loss, minus_loss = hamming_dist_loss(img, img_plus), hamming_dist_loss(img, img_minus)
-
-    est_grads = np.zeros(img.shape)
-    est_grads += plus_loss*noise_plus
-    est_grads -= minus_loss*noise_minus
-
-    return est_grads/(2*np.pi*sigma)
-
-def nes_attack(img, mean=0, std=0.1, sigma=0.5, eps=0.05, l2_threshold=25, l2_tolerance=30):
+def nes_attack(img, mean=0, std=0.1, sigma=0.5, eps=0.05, l2_threshold=25, l2_tolerance=30, num_samples=50):
     num_queries, counter = 0, 0
     # Estimate gradients with NES and find the grad direction
-    est_grad = nes_gradient_estimate(img, mean=mean, std=std, sigma=sigma)
-    num_queries += 4
+    est_grad, num_queries = nes_gradient_estimate(img, mean=mean, std=std, sigma=sigma, num_samples=num_samples)
     grad_direction = est_grad
     while True:
         num_queries += 2
         counter += 1
         # Update the image based on gradient direction 
-        perturbed_img = img + 255*eps*grad_direction
+        perturbed_img = img - 255*eps*grad_direction
         perturbed_img = np.clip(perturbed_img, 0, 255).astype(np.uint8)
         # Re-run the update if there isnt enough distortion in the image
         l2_distance = utils.distance(img, perturbed_img)
@@ -46,9 +43,9 @@ def nes_attack(img, mean=0, std=0.1, sigma=0.5, eps=0.05, l2_threshold=25, l2_to
         # Termination condition
         if counter < 20:
             if l2_distance > l2_threshold:
-                eps /= 3
+                eps /= 2
             elif l2_distance < l2_threshold-l2_tolerance:
-                eps *= 2
+                eps *= 1.5
             else:
                 print("BREAK")
                 return perturbed_img, num_queries
