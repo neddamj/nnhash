@@ -76,14 +76,13 @@ def simba_attack_image(img_path: str,
     print('[INFO] SimBA starting...')
     for _ in range(max_steps):
         step_counter += 1
-        simba_img, hamming_dist, queries = simba(img, stepsize, init_hash, fast)
-        img = simba_img
-        l2_dist = utils.distance(simba_img, orig_img, 'l2')
+        img, hamming_dist, queries = simba(img, stepsize, init_hash, fast)
+        l2_dist = utils.distance(img, orig_img, 'l2')
         print(f'Step: {step_counter} L2 Dist: {l2_dist} Hamming Dist: {hamming_dist}')
         if hamming_dist >= hamming_threshold and l2_dist >= l2_threshold:
             break
     print('[INFO] SimBA completed...')
-    utils.save_img(simba_filename, simba_img)
+    utils.save_img(simba_filename, img)
     simba_queries = 1 + queries*step_counter
     return (simba_filename, simba_queries)
 
