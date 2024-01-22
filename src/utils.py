@@ -32,10 +32,10 @@ def compute_hash(image_path, batch=False, hash_file_path='../nhcalc'):
         # Handle the input when an image is supplied instead of the path
         if type(image_path) == np.ndarray:
             try:
-                path = '../images/hash.jpeg'
+                path = '../images/hash.bmp'
                 save_img(path, image_path)
             except:
-                path = '../../images/hash.jpeg'
+                path = '../../images/hash.bmp'
                 save_img(path, image_path)
             image_path = path
         output = subprocess.check_output([hashing_file_name, image_path])

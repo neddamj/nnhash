@@ -91,12 +91,12 @@ class HSJAttack:
                 print('[INFO] Stepsize too small...')
                 return (boundary_img, num_queries+search_queries)
             # Estimate the gradient direction
-            sample_count = min(int(grad_queries * np.sqrt(idx)), 50)
-            grad, grad_queries = self.estimate_grad(boundary_img, sample_count, self.hamming_threshold)
+            sample_count = min(int(self.grad_queries * np.sqrt(idx)), 50)
+            grad, grad_est_queries = self.estimate_grad(boundary_img, sample_count, self.hamming_threshold)
             # Calculate the stepsize
             stepsize = utils.distance(orig_img, boundary_img, 'l2')/np.sqrt(idx)
             target_img, update_queries = self.grad_based_update(orig_img, boundary_img, grad, stepsize, self.hamming_threshold)
-            num_queries += (search_queries + grad_queries + update_queries)
+            num_queries += (search_queries + grad_est_queries + update_queries)
         return (target_img, num_queries)
 
 if __name__ == '__main__':
