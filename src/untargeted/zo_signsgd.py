@@ -9,10 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class ZOSignSGDttack:
-    def __init__(self, max_queries, epsilon, hamming_threshold):
+    def __init__(self, max_queries, epsilon, hamming_threshold, upper_tolerance, lower_tolerance, search_steps):
         self.max_queries = max_queries
         self.epsilon = epsilon
         self.hamming_threshold = hamming_threshold
+        self.upper_tolerance = upper_tolerance
+        self.lower_tolerance = lower_tolerance
+        self.search_steps = search_steps
 
     def grad_estimate(self, img):
         _grads = np.zeros_like(img).astype(np.float64)
@@ -45,10 +48,10 @@ class ZOSignSGDttack:
                                        utils.compute_hash(img), 
                                        'hamming')
             print(f'Hamming Distance: {hamm_dist}')
-            if counter < 20:
-                if hamm_dist >= self.hamming_threshold+5:
+            if counter < self.search_steps:
+                if hamm_dist > self.hamming_threshold + self.upper_tolerance:
                     self.epsilon /= 2
-                elif hamm_dist < self.hamming_threshold: 
+                elif hamm_dist < self.hamming_threshold + self.lower_tolerance: 
                     self.epsilon *= 1.5
                 else:
                     # Save the image
