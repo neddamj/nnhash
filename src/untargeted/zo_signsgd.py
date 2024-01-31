@@ -31,8 +31,8 @@ class ZOSignSGDttack:
 
     def attack(self, img_path):
         # Initialize the image
-        filename = img_path.split('.')
-        zosignsgd_filename = f'../..{filename[4]}_zosignsgd.bmp'
+        filename, filetype = img_path.split('.')
+        zosignsgd_filename = f'{filename}_zosignsgd.bmp'
         img = utils.load_img(img_path)
         grads, num_queries = self.grad_estimate(img)
         counter = 0
@@ -44,27 +44,32 @@ class ZOSignSGDttack:
             hamm_dist = utils.distance(utils.compute_hash(perturbed_img), 
                                        utils.compute_hash(img), 
                                        'hamming')
+            print(f'Hamming Distance: {hamm_dist}')
             if counter < 20:
-                if hamm_dist >= self.hamming_threshold:
+                if hamm_dist >= self.hamming_threshold+5:
+                    self.epsilon /= 2
+                elif hamm_dist < self.hamming_threshold: 
+                    self.epsilon *= 1.5
+                else:
                     # Save the image
                     utils.save_img(zosignsgd_filename, perturbed_img)
                     break
-                else: 
-                    self.epsilon *= 2
             else:
                 # Save the image
                 utils.save_img(zosignsgd_filename, perturbed_img)
                 break
-            
         return zosignsgd_filename, (num_queries + counter*2)
 
 
 if __name__ == "__main__":
-    idx = 1
-    img_path = f'../../images/{idx}.bmp' 
+    idx = 0
+    img_path = f'../../images/{idx+1}.bmp' 
+    _, _, _, _, path, filetype = img_path.split('.')
+    img_path = path.split('/')
+    img_path = f'/Volumes/TempRAM/{img_path[2]}.{filetype}'
     max_queries = 100
     epsilon = 0.2
-    hamming_threshold = int(0.4 * 127)
+    hamming_threshold = int(0.1 * 127)
     zo_signsgd = ZOSignSGDttack(max_queries=max_queries, epsilon=epsilon, hamming_threshold=hamming_threshold)
     perturbed_img_path, zo_queries = zo_signsgd.attack(img_path)
     plt.imshow(utils.load_img(perturbed_img_path))
