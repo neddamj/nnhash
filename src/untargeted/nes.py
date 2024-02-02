@@ -76,7 +76,7 @@ class NESAttack:
 
 if __name__ == "__main__":
     idx = 1
-    img_path = f'../../images/{idx}.jpeg' 
+    img_path = f'../../images/{idx}.bmp' 
     nes_mean = 0
     nes_std = 0.1
     nes_sigma = 0.7

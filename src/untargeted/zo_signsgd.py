@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class ZOSignSGDttack:
-    def __init__(self, max_queries, epsilon, hamming_threshold, upper_tolerance, lower_tolerance, search_steps):
+    def __init__(self, max_queries, epsilon, l2_threshold, l2_tolerance, search_steps):
         self.max_queries = max_queries
         self.epsilon = epsilon
-        self.hamming_threshold = hamming_threshold
-        self.upper_tolerance = upper_tolerance
-        self.lower_tolerance = lower_tolerance
+        self.l2_threshold = l2_threshold
+        #self.upper_tolerance = upper_tolerance
+        #self.lower_tolerance = lower_tolerance
+        self.l2_tolerance = l2_tolerance
         self.search_steps = search_steps
 
     def grad_estimate(self, img):
@@ -44,14 +45,15 @@ class ZOSignSGDttack:
             print(f'Adding {self.epsilon} noise')
             perturbed_img = img - self.epsilon * np.sign(grads)
             perturbed_img = np.clip(perturbed_img, 0, 255).astype(np.uint8)
-            hamm_dist = utils.distance(utils.compute_hash(perturbed_img), 
-                                       utils.compute_hash(img), 
-                                       'hamming')
-            print(f'Hamming Distance: {hamm_dist}')
+            l2_distance = utils.distance(img, perturbed_img)
+            #hamm_dist = utils.distance(utils.compute_hash(perturbed_img), 
+            #                           utils.compute_hash(img), 
+            #                           'hamming')
+            print(f'Step: {counter} L2 Distance: {l2_distance}')
             if counter < self.search_steps:
-                if hamm_dist > self.hamming_threshold + self.upper_tolerance:
+                if l2_distance > self.l2_threshold:
                     self.epsilon /= 2
-                elif hamm_dist < self.hamming_threshold + self.lower_tolerance: 
+                elif l2_distance < self.l2_threshold + self.l2_tolerance: 
                     self.epsilon *= 1.5
                 else:
                     # Save the image
@@ -61,7 +63,7 @@ class ZOSignSGDttack:
                 # Save the image
                 utils.save_img(zosignsgd_filename, perturbed_img)
                 break
-        return zosignsgd_filename, (num_queries + counter*2)
+        return zosignsgd_filename, (num_queries)
 
 
 if __name__ == "__main__":
