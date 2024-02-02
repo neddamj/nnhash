@@ -50,7 +50,6 @@ class NESAttack:
         est_grad, num_queries = self.nes_gradient_estimate(img, mean=self.mean, std=self.std, sigma=self.sigma, num_samples=self.num_samples)
         grad_direction = np.sign(est_grad)
         while True:
-            num_queries += 2
             counter += 1
             # Update the image based on gradient direction 
             perturbed_img = img - 255*self.eps*grad_direction
@@ -68,10 +67,11 @@ class NESAttack:
                 else:
                     print("BREAK")
                     utils.save_img(nes_filename, perturbed_img)
-                    return nes_filename, num_queries
+                    break
             else:
                 utils.save_img(nes_filename, perturbed_img)
-                return nes_filename, num_queries
+                break
+        return nes_filename, num_queries
     
 
 if __name__ == "__main__":

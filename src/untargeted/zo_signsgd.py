@@ -46,9 +46,6 @@ class ZOSignSGDttack:
             perturbed_img = img - self.epsilon * np.sign(grads)
             perturbed_img = np.clip(perturbed_img, 0, 255).astype(np.uint8)
             l2_distance = utils.distance(img, perturbed_img)
-            #hamm_dist = utils.distance(utils.compute_hash(perturbed_img), 
-            #                           utils.compute_hash(img), 
-            #                           'hamming')
             print(f'Step: {counter} L2 Distance: {l2_distance}')
             if counter < self.search_steps:
                 if l2_distance > self.l2_threshold:
@@ -63,7 +60,7 @@ class ZOSignSGDttack:
                 # Save the image
                 utils.save_img(zosignsgd_filename, perturbed_img)
                 break
-        return zosignsgd_filename, (num_queries)
+        return zosignsgd_filename, num_queries
 
 
 if __name__ == "__main__":
