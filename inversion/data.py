@@ -32,6 +32,10 @@ def save_img(save_path, img):
     img.save(save_path)
 
 if __name__ == '__main__':
+    '''
+    This will load the data into a pytorch dataset and then save the image/hash pairs to
+    memory directly.
+    '''
     # Load the train and val splits
     dataset = 'celeba'
     if dataset == 'celeba':
@@ -39,7 +43,7 @@ if __name__ == '__main__':
     else:
         dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
     train_len, val_len = 10000, 1000
-    train_data, val_data, _ = random_split(dataset, [train_len, val_len, len(dataset)-11000])
+    train_data, val_data, _ = random_split(dataset, [train_len, val_len, len(dataset)-(train_len+val_len)])
 
     def save_data(split):
         data = train_data if split == 'train' else val_data
@@ -51,10 +55,10 @@ if __name__ == '__main__':
             save_img(save_path, img)
             hashes.append(compute_hash(save_path))
             if (i+1) % 500 == 0:
-                print(f'{i} image-hash pairs saved')
+                print(f'{i+1} image-hash pairs saved')
 
         # save the hashes for each image
-        hash_file_path = f'./{split}_data/hashes.pkl'
+        hash_file_path = f'./_data/{split}/hashes.pkl'
         with open(hash_file_path, 'wb') as f:
             pickle.dump(hashes, f)
 
