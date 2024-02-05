@@ -8,12 +8,12 @@ def compute_hash(image_path, hash_file_path='./nhcalc'):
     hashing_file_name = hash_file_path
     # Handle the input when an array/tensor is supplied instead of the path
     if type(image_path) == np.ndarray:
-        path = './images/hash.bmp'
+        path = './imgs/hash.bmp'
         img = Image.fromarray(image_path)
         img.save(path)
         image_path = path
     elif type(image_path) == torch.Tensor:
-        path = './images/hash.bmp'
+        path = './imgs/hash.bmp'
         transform = T.ToPILImage()
         img = transform(image_path)
         img.save(path)
@@ -25,16 +25,16 @@ def compute_hash(image_path, hash_file_path='./nhcalc'):
 def hash2tensor(hash):
     hash = bin(hash)[2:]
     hash_tensor = torch.tensor([float(num) for num in hash])
-    if hash_tensor.shape != torch.Size([127]):
-        num_zeros = 127 - hash_tensor.shape[0]
-        hash_tensor = torch.cat((hash_tensor, torch.tensor([0 for _ in range(num_zeros)])), dim=0)
+    if hash_tensor.shape != torch.Size([128]):
+        num_zeros = 128 - hash_tensor.shape[0]
+        hash_tensor = torch.cat((torch.tensor([0 for _ in range(num_zeros)]), hash_tensor), dim=0)
     return hash_tensor
 
 def hamming_distance(hash_1, hash_2):
     return bin(hash_1^hash_2).count('1')
 
 if __name__ == '__main__':
-    img_path = './images/1.bmp'
+    img_path = './imgs/hash.bmp'
     hash = compute_hash(img_path)
     hash_tensor = hash2tensor(hash)
-    print(hash_tensor)
+    print(hash_tensor.shape, hash_tensor)
