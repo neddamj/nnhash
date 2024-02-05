@@ -29,7 +29,7 @@ class ResidualBlock(nn.Module):
 class Hash2ImageModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.linear = nn.Linear(127, 1024)
+        self.linear = nn.Linear(128, 1024)
         self.conv1 = nn.Conv2d(1, 64, 3, padding='same')
         self.res1 = ResidualBlock(64)
         self.res2 = ResidualBlock(64)
@@ -38,10 +38,8 @@ class Hash2ImageModel(nn.Module):
         self.deconv1 = nn.ConvTranspose2d(64, 64, 5, stride=2, padding=1)
         self.deconv2 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
-        #self.deconv4 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(64, 3, 5, stride=4)
         
-    
     def forward(self, x):
         x = x.type(torch.float32)
         x = self.linear(x)
@@ -54,7 +52,6 @@ class Hash2ImageModel(nn.Module):
         x = self.deconv1(x)
         x = self.deconv2(x)
         x = self.deconv3(x)
-        #x = self.deconv4(x)
         x = self.conv2(x)
         return x
     

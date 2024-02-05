@@ -14,7 +14,7 @@ import numpy as np
 
 if __name__ == '__main__':
     # Constants for training
-    NUM_EPOCHS = 75
+    NUM_EPOCHS = 50
     TRAIN_BATCH_SIZE = 32
     LEARNING_RATE = 5e-4
     DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
