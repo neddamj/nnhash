@@ -52,10 +52,12 @@ if __name__ == "__main__":
             img_hash, vig_hash = compute_hash(image_path), compute_hash(vignette_img)
             vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming')/(4*(len(hex(img_hash))-2))
             vignette_success = (vignette_hamming_distance >= hamming_threshold)
+            vignette_l2 = distance(image, vignette_img)
             print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {vig_hash}')
             # Change brightness
             bright_img = brightness(image)
             bright_hash = compute_hash(bright_img)
+            bright_l2 = distance(bright_img, image)
             bright_hamming_distance = distance(img_hash, bright_hash, 'hamming')/(4*(len(hex(img_hash))-2))
             bright_success = (bright_hamming_distance >= hamming_threshold)
             print(f'JPEG2GIF:\nRelative Hamming Distance: {bright_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {bright_hash}')
@@ -68,7 +70,9 @@ if __name__ == "__main__":
                 'VIGNETTE Relative Hamming Dist': [vignette_hamming_distance],
                 'BRIGHT Relative Hamming Dist': [bright_hamming_distance],
                 'VIGNETTE Success': [vignette_success],
-                'BRIGHT Success': [bright_success]
+                'VIGNETTE L2': [vignette_l2], 
+                'BRIGHT Success': [bright_success],
+                'BRIGHT L2': [bright_l2]
             }
             
             df = pd.DataFrame.from_dict(metrics)

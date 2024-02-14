@@ -48,6 +48,8 @@ if __name__ == "__main__":
             print(f'\nImage {i}')
             # BMP to JPEG
             jpeg_path = bmp_to_jpg(image_path)
+            jpeg_image = load_img(jpeg_path)
+            bmp2jpeg_l2 = distance(image, jpeg_image)
             bmp_hash, jpeg_hash = compute_hash(image_path), compute_hash(jpeg_path)
             bmp2jpeg_hamming_distance = distance(bmp_hash, jpeg_hash, 'hamming')/(4*(len(hex(bmp_hash))-2))
             bmp2jpeg_success = (bmp2jpeg_hamming_distance >= hamming_threshold)
@@ -71,6 +73,7 @@ if __name__ == "__main__":
                 'GIF Hash': [hex(gif_hash)],
                 'BMP2JPEG Relative Hamming Dist': [bmp2jpeg_hamming_distance],
                 'BMP2JPEG Success': [bmp2jpeg_success],
+                'BMP2JPEG L2 Dist': [bmp2jpeg_l2],
                 'JPEG2GIF Relative Hamming Dist': [jpeg2gif_hamming_distance],
                 'JPEG2GIF Success': [jpeg2gif_success],
                 'BMP2GIF Relative Hamming Dist': [bmp2gif_hamming_distance],
