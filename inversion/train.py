@@ -21,11 +21,19 @@ if __name__ == '__main__':
 
     torch.manual_seed(1337)
 
-    # Create the dataset and data loader for training
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
+    # Create the dataset and data loader for training. When training with MNIST use 
+    # transforms.Normalize((0.5), (0.5)) since the images aee greyscale. For datasets
+    # with RGB images use transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)).
+    try:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+    except:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5), (0.5))
+        ])
     train_dataset = Hash2ImgDataset(image_paths='./_data/train/images', hash_paths='./_data/train/hashes.pkl', transforms=transform)
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE)
 

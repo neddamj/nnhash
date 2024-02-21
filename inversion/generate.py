@@ -17,23 +17,29 @@ DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
 torch.manual_seed(1337)
 
 # Create the dataset and data loader for training
-transform = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-])
+try:
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+except:
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize((0.5), (0.5))
+    ])
 dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model
 model = Hash2ImageModel()
-checkpoint = torch.load('./saved_models/2024-01-26_10:11:37%_saved_model.pth')
+checkpoint = torch.load('/Users/neddamj/Documents/BU/Research/2022PhotoDNA/nnhash/inversion/saved_models/2024-02-21_13:31:44%_saved_model.pth')
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
 
 model.eval()
 avg_hamm_dist = []
 for i, (hash, image) in enumerate(loader):
-    if i == 20:
+    if i == 15:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
@@ -57,7 +63,6 @@ for i, (hash, image) in enumerate(loader):
     fig.add_subplot(rows, cols, 2)
     plt.imshow(image)
     plt.title('Ground Truth')
-    fig.suptitle(f'Hamming Distance: {hamm_dist}')
     plt.show()
 
 print(f'The average hamming distance between the hashes of the generations and the originals is {sum(avg_hamm_dist)/len(avg_hamm_dist)}')
