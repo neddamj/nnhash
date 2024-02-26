@@ -20,30 +20,31 @@ DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
 torch.manual_seed(1337)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', type=bool)
-parser.add_argument('--display', help='Display the generated images or not', type=bool)
+parser.add_argument('-r','--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
+parser.add_argument('-d', '--display', help='Display the generated images or not', default=0, type=int)
 args = parser.parse_args()
 
 # Using color images or not
 rgb = args.rgb
 
+
 # Create the dataset and data loader for training
 if rgb:
     transform = transforms.Compose([
         transforms.ToTensor(),
-        #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 else:
     transform = transforms.Compose([
         transforms.ToTensor(),
-        #transforms.Normalize((0.5), (0.5))
+        transforms.Normalize((0.5), (0.5))
     ])
 dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model
 model = Hash2ImageModel(rgb)
-checkpoint = torch.load('/Users/neddamj/Documents/BU/Research/2022PhotoDNA/nnhash/inversion/saved_models/2024-02-05_12:27:42%_saved_model.pth')
+checkpoint = torch.load('/Users/neddamj/Documents/BU/Research/2022PhotoDNA/nnhash/inversion/saved_models/2024-02-21_13:31:44%_mnist_saved_model.pth')
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
 

@@ -60,8 +60,9 @@ if __name__ == '__main__':
     parser.add_argument('--train_len', help='The amount of datapoints to be used for training', default=10000, type=int)
     parser.add_argument('--val_len', help='The amount of datapoints to be used for testing', default=100, type=int)
     parser.add_argument('--skip', help='If no data loading is necessary then skip this step. Set to true if you need to change datasets before training/inference.', 
-                        default=False, type=bool)
+                        default=0, type=int)
     args = parser.parse_args()
+    
     # Load the train and val splits
     if not args.skip:
         data = args.dataset

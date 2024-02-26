@@ -15,7 +15,7 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', type=bool)
+    parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
     parser.add_argument('--epochs', help='Number of Epochs to train for', default=50, type=int)
     parser.add_argument('--batch_size', help='Batch size to be used in training', default=32, type=int)
     parser.add_argument('--learning_rate', help='Learning Rate to be used during training', default=5e-4, type=float)
