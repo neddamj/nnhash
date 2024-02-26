@@ -11,25 +11,36 @@ from data import Hash2ImgDataset
 from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', type=bool)
+    parser.add_argument('--epochs', help='Number of Epochs to train for', default=50, type=int)
+    parser.add_argument('--batch_size', help='Batch size to be used in training', default=32, type=int)
+    parser.add_argument('--learning_rate', help='Learning Rate to be used during training', default=5e-4, type=float)
+    args = parser.parse_args()
+
     # Constants for training
-    NUM_EPOCHS = 50
-    TRAIN_BATCH_SIZE = 32
+    NUM_EPOCHS = args.epochs
+    TRAIN_BATCH_SIZE = args.batch_size
     LEARNING_RATE = 5e-4
     DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
 
     torch.manual_seed(1337)
 
-    # Create the dataset and data loader for training. When training with MNIST use 
-    # transforms.Normalize((0.5), (0.5)) since the images aee greyscale. For datasets
-    # with RGB images use transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)).
-    try:
+    
+
+    # Pocessing rgb o greyscale images
+    rgb = args.rgb
+
+    # Create the dataset and data loader for training
+    if rgb:
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
-    except:
+    else:
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5))
