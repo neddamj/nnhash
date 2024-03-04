@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 
+import lpips
+
 # Constants for training
 NUM_EPOCHS = 35
 BATCH_SIZE = 1
@@ -22,6 +24,7 @@ torch.manual_seed(1337)
 parser = argparse.ArgumentParser()
 parser.add_argument('-r','--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
 parser.add_argument('-d', '--display', help='Display the generated images or not', default=0, type=int)
+parser.add_argument('-p','--path', help='Path to the saved torch model to be used', required=True, type=str)
 args = parser.parse_args()
 
 # Using color images or not
@@ -44,12 +47,15 @@ loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model
 model = Hash2ImageModel(rgb)
-checkpoint = torch.load('/Users/neddamj/Documents/BU/Research/2022PhotoDNA/nnhash/inversion/saved_models/2024-02-21_13:31:44%_mnist_saved_model.pth')
+checkpoint = torch.load(args.path)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
-
 model.eval()
-avg_hamm_dist, avg_l2_dist, avg_ssim = [], [], []
+
+# Load the learned perceptual similarity metric
+perceptual_sim = lpips.LPIPS(net='vgg')
+
+avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
     if i == 100:
         break
@@ -60,20 +66,6 @@ for i, (hash, image) in enumerate(loader):
     pred_img = pred_img.squeeze(0).detach().permute(1, 2, 0)
     image = image.to(torch.device('cpu'))
     image = image.squeeze(0).detach().permute(1, 2, 0)
-    # Find per-pixel L2 distance between images. Images are already normalized to the
-    # range [0, 1] so no need to normalize while calculating per-pixel norm
-    if not rgb:
-        l2_dist = np.linalg.norm(image - pred_img)/np.sqrt(64*64)
-    else:
-        l2_dist = np.linalg.norm(image - pred_img)/np.sqrt(64*64*3)
-    avg_ssim.append(ssim(np.array(image), np.array(pred_img), channel_axis=-1, data_range=1))
-    avg_l2_dist.append(l2_dist)
-    # Compute the hamming distance between the predicted image
-    # and the original
-    pred_hash = compute_hash(pred_img.permute(2, 0, 1))
-    true_hash = compute_hash(image.permute(2, 0, 1))
-    hamm_dist = hamming_distance(true_hash, pred_hash)
-    avg_hamm_dist.append(hamm_dist)
 
     if args.display:
         fig = plt.figure(figsize=(5, 5))
@@ -86,6 +78,28 @@ for i, (hash, image) in enumerate(loader):
         plt.title('Ground Truth')
         plt.show()
 
-print(f'The average l2 distance is {np.array(avg_l2_dist).mean()} +- {np.std(np.array(avg_l2_dist))}')
-print(f'The average SSIM is {np.array(avg_ssim).mean()} +- {np.std(np.array(avg_ssim))}')
+    # Find per-pixel L2 distance between images. Images are already normalized to the
+    # range [0, 1] so no need to normalize while calculating per-pixel norm
+    if not rgb:
+        l2_dist = np.linalg.norm(image - pred_img)/np.sqrt(64*64)
+    else:
+        l2_dist = np.linalg.norm(image - pred_img)/np.sqrt(64*64*3)
+    avg_l2_dist.append(l2_dist)
+    # Find the SSIM between the original and geneerated images
+    avg_ssim.append(ssim(np.array(image), np.array(pred_img), channel_axis=-1, data_range=1))
+    # Calculate the perceptual similarity
+    image, pred_img = image.permute(2, 0, 1), pred_img.permute(2, 0, 1)
+    d = perceptual_sim(image, pred_img, normalize=True)
+    avg_lpips.append(d.detach().numpy())
+    # Compute the hamming distance between the predicted image
+    # and the original
+    pred_hash = compute_hash(pred_img)
+    true_hash = compute_hash(image)
+    hamm_dist = hamming_distance(true_hash, pred_hash)
+    avg_hamm_dist.append(hamm_dist)
+
+    
+print(f'The average l2 distance is {np.array(avg_l2_dist).mean()} +- {np.std(np.array(avg_l2_dist))} units')
+print(f'The average SSIM is {np.array(avg_ssim).mean()} +- {np.std(np.array(avg_ssim))} units')
+print(f'The average LPIPS distance between the images is {np.array(avg_lpips).mean()} +- {np.std(np.array(avg_lpips))} units')
 print(f'The hamming distance between the images is {np.array(avg_hamm_dist).mean()}')
