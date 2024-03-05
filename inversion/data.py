@@ -67,11 +67,13 @@ if __name__ == '__main__':
     if not args.skip:
         data = args.dataset
         if data == 'celeba':
-            dataset = datasets.CelebA(root='./', split='train', target_type='identity', download=False)
+            dataset = datasets.CelebA(root='./data', split='train', target_type='identity', transform=None, download=False)
         elif data == 'mnist':
-            dataset = datasets.MNIST(root='./mnist', train=True, download=True, transform=None)
+            dataset = datasets.MNIST(root='./data', train=True, download=True, transform=None)
         elif data == 'stl10':
-            dataset = datasets.STL10(root='./stl10', split='train', download=True)
+            dataset = datasets.STL10(root='./data', split='train', download=True)
+        elif data == 'fashion':
+            dataset = datasets.FashionMNIST(root='./data', train=True, download=False)
         else:
             dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
         train_len, val_len = args.train_len, args.val_len

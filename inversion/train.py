@@ -15,6 +15,7 @@ import argparse
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', help='Name of the dataset being used to train the model', required=True, type=str)
     parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
     parser.add_argument('--epochs', help='Number of Epochs to train for', default=50, type=int)
     parser.add_argument('--batch_size', help='Batch size to be used in training', default=32, type=int)
@@ -27,11 +28,9 @@ if __name__ == '__main__':
     LEARNING_RATE = 5e-4
     DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
 
-    torch.manual_seed(1337)
+    torch.manual_seed(1337)    
 
-    
-
-    # Pocessing rgb o greyscale images
+    # Pocessing rgb or greyscale images
     rgb = args.rgb
 
     # Create the dataset and data loader for training
@@ -49,13 +48,13 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE)
 
     # Initialize the model and send it to the proper device
-    model = Hash2ImageModel()
+    model = Hash2ImageModel(rgb=rgb)
     model.to(DEVICE)
     
     # Define the path to save the model
     now = datetime.now()
     dt = now.strftime('%Y-%m-%d_%H:%M:%S%')
-    model_path = f'saved_models/{dt}_saved_model.pth'
+    model_path = f'saved_models/{dt}_{args.dataset}_saved_model.pth'
     
     # Training stuff
     early_stop = False
@@ -99,7 +98,6 @@ if __name__ == '__main__':
 
         print(f'\nEpoch: {epoch+1}/{NUM_EPOCHS} Avg Loss: {train_loss:.4f}\n')
         
-    print('[INFO] Training complete')
 
     # Display loss history
     plt.plot(loss_tracker)
