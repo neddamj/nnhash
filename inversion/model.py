@@ -27,9 +27,14 @@ class ResidualBlock(nn.Module):
         return x
     
 class Hash2ImageModel(nn.Module):
-    def __init__(self, rgb=True):
+    def __init__(self, rgb=True, hash_func='pdq'):
         super().__init__()
-        self.linear = nn.Linear(128, 1024)
+        if hash_func == 'neuralhash':
+            self.linear = nn.Linear(128, 1024)
+        elif hash_func == 'photodna':
+            self.linear = nn.Linear(144, 1024)
+        else:
+            self.linear = nn.Linear(256, 1024)
         self.conv1 = nn.Conv2d(1, 64, 3, padding='same')
         self.res1 = ResidualBlock(64)
         self.res2 = ResidualBlock(64)

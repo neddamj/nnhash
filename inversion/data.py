@@ -67,7 +67,7 @@ if __name__ == '__main__':
     if not args.skip:
         data = args.dataset
         if data == 'celeba':
-            dataset = datasets.CelebA(root='./data', split='train', target_type='identity', transform=None, download=False)
+            dataset = datasets.CelebA(root='./data', split='train', target_type='identity', transform=None, download=True)
         elif data == 'mnist':
             dataset = datasets.MNIST(root='./data', train=True, download=True, transform=None)
         elif data == 'stl10':

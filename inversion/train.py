@@ -98,7 +98,6 @@ if __name__ == '__main__':
 
         print(f'\nEpoch: {epoch+1}/{NUM_EPOCHS} Avg Loss: {train_loss:.4f}\n')
         
-
     # Display loss history
     plt.plot(loss_tracker)
     plt.ylabel('Loss')
