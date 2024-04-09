@@ -41,7 +41,7 @@ else:
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths='./_data/train/images', hash_paths='./_data/train/hashes.pkl', transforms=transform)
+dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model
