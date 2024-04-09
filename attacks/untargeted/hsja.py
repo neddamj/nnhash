@@ -110,4 +110,3 @@ if __name__ == '__main__':
     hash1, hash2 = utils.compute_hash(orig_img), utils.compute_hash(adv_img)
     print(f'Hamming Dist: {utils.distance(hash1, hash2, "hamming")}')
     print(f"l2 Dist: {utils.distance(orig_img, adv_img, 'l2')}")
-

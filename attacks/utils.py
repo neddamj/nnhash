@@ -3,11 +3,12 @@ from PIL import Image
 import numpy as np
 import subprocess
 import shutil
+import pdqhash
 import glob
 import os
 
 ## Adversarial Helper Functions
-def distance(x, y, type='l2'):
+def distance(x, y, type='l2', hash_func='neuralhash'):
     if type == 'l2':
         return np.linalg.norm(x/255.0 - y/255.0)
     elif type == 'linf':
@@ -17,19 +18,40 @@ def distance(x, y, type='l2'):
     elif type == 'hamming':
         # x and y in this case refer to the hash values of the 2 images
         # rather than the images themselves
-        return bin(x^y).count('1')
+        if hash_func == 'neuralhash':
+            hamming_dist = bin(x^y).count('1')
+        elif hash_func == 'pdq':
+            hash_x = int(''.join([str(num) for num in x]), 2)
+            hash_y = int(''.join([str(num) for num in y]), 2)
+            # Calculate hammng dist
+            hamming_dist = bin(hash_x^hash_y).count('1')
+        return hamming_dist
 
-def compute_hash(image_path, batch=False, hash_file_path='../nhcalc'):
+def compute_hash(image_path, batch=False, hash_file_path='../nhcalc', hash_func='neuralhash'):
     hashing_file_name = hash_file_path
-    if batch:
-        image_path.insert(0, hashing_file_name)
-        output = subprocess.check_output(image_path)
-        image_path.pop(0)
-        hashes = output.strip().split()
-        hashes = hashes[1::3]
-        return np.array(list(map(lambda x: int(x,16), hashes)))
-    else:
-        # Handle the input when an image is supplied instead of the path
+    if hash_func == 'neuralhash':
+        if batch:
+            image_path.insert(0, hashing_file_name)
+            output = subprocess.check_output(image_path)
+            image_path.pop(0)
+            hashes = output.strip().split()
+            hashes = hashes[1::3]
+            return np.array(list(map(lambda x: int(x,16), hashes)))
+        else:
+            # Handle the input when an image is supplied instead of the path
+            if type(image_path) == np.ndarray:
+                try:
+                    path = '../images/hash.bmp'
+                    save_img(path, image_path)
+                except:
+                    path = '../../images/hash.bmp'
+                    save_img(path, image_path)
+                image_path = path
+            output = subprocess.check_output([hashing_file_name, image_path])
+            hash = output.strip().split()
+            hash = int(hash[1], 16)
+            return hash
+    elif hash_func == 'pdq':
         if type(image_path) == np.ndarray:
             try:
                 path = '../images/hash.bmp'
@@ -38,9 +60,17 @@ def compute_hash(image_path, batch=False, hash_file_path='../nhcalc'):
                 path = '../../images/hash.bmp'
                 save_img(path, image_path)
             image_path = path
-        output = subprocess.check_output([hashing_file_name, image_path])
-        hash = output.strip().split()
-        return int(hash[1], 16)
+        image = load_img(image_path)
+        hash, _ = pdqhash.compute(image)
+        return hash
+    
+def hash2array(hash):
+    hash = bin(hash)[2:]
+    hash_tensor = np.array([float(val) for val in hash])
+    if hash_tensor.shape[0] != 128:
+        num_zeros = 128 - hash_tensor.shape[0]
+        hash_tensor = np.concatenate((np.array([0 for _ in range(num_zeros)]), hash_tensor))
+    return hash_tensor
 
 ## Data Helper Functions
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
