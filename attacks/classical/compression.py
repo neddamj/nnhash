@@ -51,26 +51,26 @@ if __name__ == "__main__":
             jpeg_image = load_img(jpeg_path)
             bmp2jpeg_l2 = distance(image, jpeg_image)
             bmp_hash, jpeg_hash = compute_hash(image_path), compute_hash(jpeg_path)
-            bmp2jpeg_hamming_distance = distance(bmp_hash, jpeg_hash, 'hamming')/(4*(len(hex(bmp_hash))-2))
+            bmp2jpeg_hamming_distance = distance(bmp_hash, jpeg_hash, 'hamming')/(256)
             bmp2jpeg_success = (bmp2jpeg_hamming_distance >= hamming_threshold)
             print(f'BMP2JPEG:\nRelative Hamming Distance: {bmp2jpeg_hamming_distance:.4f}\nHash 1: {bmp_hash}\nHash 2: {jpeg_hash}')
             # JPEG to GIF
             gif_path = jpg_to_gif(jpeg_path)
-            gif_image = load_img(gif_path)
-            jpeg_hash, gif_hash = compute_hash(jpeg_path), compute_hash(gif_path)
-            jpeg2gif_hamming_distance = distance(gif_hash, jpeg_hash, 'hamming')/(4*(len(hex(jpeg_hash))-2))
+            gif_image = np.expand_dims(load_img(gif_path), axis=-1)
+            print(jpeg_image.shape, gif_image.shape)
+            jpeg_hash, gif_hash = compute_hash(jpeg_path), compute_hash(gif_image)
+            jpeg2gif_hamming_distance = distance(gif_hash, jpeg_hash, 'hamming')/(256)
             jpeg2gif_success = (jpeg2gif_hamming_distance >= hamming_threshold)
             print(f'JPEG2GIF:\nRelative Hamming Distance: {jpeg2gif_hamming_distance:.4f}\nHash 1: {jpeg_hash}\nHash 2: {gif_hash}')
             # BMP to GIF
-            bmp2gif_hamming_distance = distance(bmp_hash, gif_hash, 'hamming')/(4*(len(hex(bmp_hash))-2))
+            bmp2gif_hamming_distance = distance(bmp_hash, gif_hash, 'hamming')/(256)
             bmp2gif_success = (bmp2gif_hamming_distance >= hamming_threshold)
             print(f'JPEG2GIF:\nRelative Hamming Distance: {bmp2gif_hamming_distance:.4f}\nHash 1: {bmp_hash}\nHash 2: {gif_hash}')
 
             metrics = {
                 'Image Path': [image_path],
-                'BMP Hash': [hex(bmp_hash)],
-                'JPEG Hash': [hex(jpeg_hash)],
-                'GIF Hash': [hex(gif_hash)],
+                'BMP Hash': [(bmp_hash)],
+                'JPEG Hash': [(jpeg_hash)],
                 'BMP2JPEG Relative Hamming Dist': [bmp2jpeg_hamming_distance],
                 'BMP2JPEG Success': [bmp2jpeg_success],
                 'BMP2JPEG L2 Dist': [bmp2jpeg_l2],

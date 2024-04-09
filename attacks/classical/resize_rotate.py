@@ -49,22 +49,22 @@ if __name__ == "__main__":
             # Resize image
             reseized_img = resize(image, size_ratio=0.5)
             img_hash, resized_hash = compute_hash(image_path), compute_hash(reseized_img)
-            resized_hamming_distance = distance(img_hash, resized_hash, 'hamming')/(4*(len(hex(img_hash))-2))
+            resized_hamming_distance = distance(img_hash, resized_hash, 'hamming')/(256)
             resized_success = (resized_hamming_distance >= hamming_threshold)
             print(f'BMP2JPEG:\nRelative Hamming Distance: {resized_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {resized_hash}')
             # Rotate image
             rotated_img = rotate(image, angle=90)
             img_hash, rotated_hash = compute_hash(image_path), compute_hash(rotated_img)
-            rotated_hamming_distance = distance(img_hash, rotated_hash, 'hamming')/(4*(len(hex(img_hash))-2))
+            rotated_hamming_distance = distance(img_hash, rotated_hash, 'hamming')/(256)
             rotated_success = (rotated_hamming_distance >= hamming_threshold)
             rotated_l2 = distance(image, rotated_img)
             print(f'BMP2JPEG:\nRelative Hamming Distance: {rotated_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {rotated_hash}')
             
             metrics = {
                 'Image Path': [image_path],
-                'IMG Hash': [hex(img_hash)],
-                'Resized Hash': [hex(resized_hash)],
-                'Rotated Hash': [hex(rotated_hash)],
+                'IMG Hash': [(img_hash)],
+                'Resized Hash': [(resized_hash)],
+                'Rotated Hash': [(rotated_hash)],
                 'Resized Relative Hamming Dist': [resized_hamming_distance],
                 'Rotated Relative Hamming Dist': [rotated_hamming_distance],
                 'Resized Success': [resized_success],

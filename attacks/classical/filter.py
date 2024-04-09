@@ -50,7 +50,7 @@ if __name__ == "__main__":
             # Vignette filter
             vignette_img = vignette(image)
             img_hash, vig_hash = compute_hash(image_path), compute_hash(vignette_img)
-            vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming')/(4*(len(hex(img_hash))-2))
+            vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming')/(256)
             vignette_success = (vignette_hamming_distance >= hamming_threshold)
             vignette_l2 = distance(image, vignette_img)
             print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {vig_hash}')
@@ -58,15 +58,15 @@ if __name__ == "__main__":
             bright_img = brightness(image)
             bright_hash = compute_hash(bright_img)
             bright_l2 = distance(bright_img, image)
-            bright_hamming_distance = distance(img_hash, bright_hash, 'hamming')/(4*(len(hex(img_hash))-2))
+            bright_hamming_distance = distance(img_hash, bright_hash, 'hamming')/(256)
             bright_success = (bright_hamming_distance >= hamming_threshold)
             print(f'JPEG2GIF:\nRelative Hamming Distance: {bright_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {bright_hash}')
             
             metrics = {
                 'Image Path': [image_path],
-                'IMG Hash': [hex(img_hash)],
-                'VIGNETTE Hash': [hex(vig_hash)],
-                'BRIGHTNESS Hash': [hex(bright_hash)],
+                'IMG Hash': [(img_hash)],
+                'VIGNETTE Hash': [(vig_hash)],
+                'BRIGHTNESS Hash': [(bright_hash)],
                 'VIGNETTE Relative Hamming Dist': [vignette_hamming_distance],
                 'BRIGHT Relative Hamming Dist': [bright_hamming_distance],
                 'VIGNETTE Success': [vignette_success],
