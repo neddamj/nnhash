@@ -1,4 +1,4 @@
-src/nhcalc
+nhcalc
 .DS_Store
 images
 logs
@@ -11,3 +11,21 @@ results
 metrics
 ablation
 .vscode
+places365
+mnist
+stl10 
+.vscode
+.ipynb_checkpoints
+train_data
+val_data
+data
+_data
+__pycache__
+saved_models
+/outputs
+*.pkl
+*.txt
+celeba
+imgs
+attacks/hash.ipynb
+attacks/neuralhash_128x96_seed1.dat
