@@ -29,8 +29,6 @@ class CIFAR10:
             save_img(f'{path}{i+1}.bmp', img)
         print('[INFO] Images saved')
 
-    
-
 class IMAGENETTE:
     def load(self, split='train'):
         ds = tfds.load(
