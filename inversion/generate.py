@@ -24,6 +24,7 @@ torch.manual_seed(1337)
 parser = argparse.ArgumentParser()
 parser.add_argument('-r','--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
 parser.add_argument('-d', '--display', help='Display the generated images or not', default=0, type=int)
+parser.add_argument('-f','--hash_func', help='Hash function to be inverted', required=True, type=str)
 parser.add_argument('-p','--path', help='Path to the saved torch model to be used', required=True, type=str)
 args = parser.parse_args()
 
@@ -45,7 +46,7 @@ dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model
-model = Hash2ImageModel(rgb)
+model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
 checkpoint = torch.load(args.path)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
@@ -56,7 +57,7 @@ perceptual_sim = lpips.LPIPS(net='vgg')
 
 avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
-    if i == 100:
+    if i == 20:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
@@ -65,7 +66,7 @@ for i, (hash, image) in enumerate(loader):
     pred_img = pred_img.squeeze(0).detach().permute(1, 2, 0)
     image = image.to(torch.device('cpu'))
     image = image.squeeze(0).detach().permute(1, 2, 0)
-
+    
     # Find per-pixel L2 distance between images. Images are already normalized to the
     # range [0, 1] so no need to normalize while calculating per-pixel norm
     if not rgb:
@@ -86,10 +87,10 @@ for i, (hash, image) in enumerate(loader):
     
     # Compute the hamming distance between the predicted image
     # and the original
-    pred_hash = compute_hash(pred_img)
+    """pred_hash = compute_hash(pred_img)
     true_hash = compute_hash(image)
     hamm_dist = hamming_distance(true_hash, pred_hash)
-    avg_hamm_dist.append(hamm_dist)
+    avg_hamm_dist.append(hamm_dist)"""
     image, pred_img = image.permute(1, 2, 0), pred_img.permute(1, 2, 0)
 
     if args.display:
@@ -106,4 +107,4 @@ for i, (hash, image) in enumerate(loader):
 print(f'The average l2 distance is {np.array(avg_l2_dist).mean()} +- {np.std(np.array(avg_l2_dist))} units')
 print(f'The average SSIM is {np.array(avg_ssim).mean()} +- {np.std(np.array(avg_ssim))} units')
 print(f'The average LPIPS distance between the images is {np.array(avg_lpips).mean()} +- {np.std(np.array(avg_lpips))} units')
-print(f'The hamming distance between the images is {np.array(avg_hamm_dist).mean()}')
+#print(f'The hamming distance between the images is {np.array(avg_hamm_dist).mean()}')
