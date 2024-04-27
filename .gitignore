@@ -29,3 +29,5 @@ celeba
 imgs
 attacks/hash.ipynb
 attacks/neuralhash_128x96_seed1.dat
+mnist_data
+celeba_data
