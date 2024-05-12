@@ -45,7 +45,7 @@ else:
 dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
-# Load the saved model
+# Load the saved model 
 model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
 checkpoint = torch.load(args.path)
 model.load_state_dict(checkpoint['model_state_dict'])
@@ -85,12 +85,14 @@ for i, (hash, image) in enumerate(loader):
     print(f'LPIPS Score: {d.detach().numpy()}')
     avg_lpips.append(d.detach().numpy())
     
+    """
     # Compute the hamming distance between the predicted image
     # and the original
-    """pred_hash = compute_hash(pred_img)
+    pred_hash = compute_hash(pred_img)
     true_hash = compute_hash(image)
     hamm_dist = hamming_distance(true_hash, pred_hash)
-    avg_hamm_dist.append(hamm_dist)"""
+    avg_hamm_dist.append(hamm_dist)
+    """
     image, pred_img = image.permute(1, 2, 0), pred_img.permute(1, 2, 0)
 
     if args.display:
