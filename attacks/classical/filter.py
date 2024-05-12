@@ -6,9 +6,12 @@ import cv2
 import pandas as pd
 import numpy as np
 from data import CIFAR10, IMAGENETTE
-from utils import compute_hash, distance, load_img
+from utils import compute_hash, distance, load_img, save_img
+import matplotlib.pyplot as plt
 
-def vignette(image):
+def vignette(im):
+    image = np.copy(im)
+    image = cv2.resize(image, (480, 480))
     rows, cols = image.shape[:2]
     # Generate vignette mask with gaussian kernels
     kernel_x = cv2.getGaussianKernel(rows, 200)
@@ -19,11 +22,7 @@ def vignette(image):
     # Apply the mask to each channel of the image
     for i in range(3):
         output[:, :, i] = output[:, :, i] * mask
-    return output
-
-def brightness(image, contrast=1.2, brightness=5.0):
-    bright_image = cv2.convertScaleAbs(image, alpha=contrast, beta=brightness)
-    return bright_image
+    return cv2.resize(output, (224, 224))
 
 if __name__ == "__main__":
     # Load data to disk
@@ -53,26 +52,16 @@ if __name__ == "__main__":
             vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming')/(256)
             vignette_success = (vignette_hamming_distance >= hamming_threshold)
             vignette_l2 = distance(image, vignette_img)
-            print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {vig_hash}')
-            # Change brightness
-            bright_img = brightness(image)
-            bright_hash = compute_hash(bright_img)
-            bright_l2 = distance(bright_img, image)
-            bright_hamming_distance = distance(img_hash, bright_hash, 'hamming')/(256)
-            bright_success = (bright_hamming_distance >= hamming_threshold)
-            print(f'JPEG2GIF:\nRelative Hamming Distance: {bright_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {bright_hash}')
+            save_img(f'../../images/{i+1}_filt.bmp', vignette_img)
+            print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(vig_hash)}')
             
             metrics = {
                 'Image Path': [image_path],
                 'IMG Hash': [(img_hash)],
                 'VIGNETTE Hash': [(vig_hash)],
-                'BRIGHTNESS Hash': [(bright_hash)],
                 'VIGNETTE Relative Hamming Dist': [vignette_hamming_distance],
-                'BRIGHT Relative Hamming Dist': [bright_hamming_distance],
                 'VIGNETTE Success': [vignette_success],
-                'VIGNETTE L2': [vignette_l2], 
-                'BRIGHT Success': [bright_success],
-                'BRIGHT L2': [bright_l2]
+                'VIGNETTE L2': [vignette_l2]
             }
             
             df = pd.DataFrame.from_dict(metrics)
@@ -80,4 +69,4 @@ if __name__ == "__main__":
             if os.path.exists(file_path):
                 df.to_csv(file_path, mode='a', index=False, header=False)
             else: 
-                df.to_csv(file_path, index=False, header=True)    
+                df.to_csv(file_path, index=False, header=True)

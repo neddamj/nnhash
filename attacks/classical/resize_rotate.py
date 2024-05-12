@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from PIL import Image
 from data import CIFAR10, IMAGENETTE
-from utils import compute_hash, distance, load_img
+from utils import compute_hash, distance, load_img, save_img
 
 def resize(img, size_ratio=0.5):
     H, W, _ = img.shape
@@ -48,17 +48,19 @@ if __name__ == "__main__":
             print(f'\nImage {i}')
             # Resize image
             reseized_img = resize(image, size_ratio=0.5)
+            save_img(f'../../images/{i+1}_res.bmp', reseized_img)
             img_hash, resized_hash = compute_hash(image_path), compute_hash(reseized_img)
             resized_hamming_distance = distance(img_hash, resized_hash, 'hamming')/(256)
             resized_success = (resized_hamming_distance >= hamming_threshold)
-            print(f'BMP2JPEG:\nRelative Hamming Distance: {resized_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {resized_hash}')
+            print(f'Resizing:\nRelative Hamming Distance: {resized_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(resized_hash)}')
             # Rotate image
             rotated_img = rotate(image, angle=90)
+            save_img(f'../../images/{i+1}_rot.bmp', rotated_img)
             img_hash, rotated_hash = compute_hash(image_path), compute_hash(rotated_img)
             rotated_hamming_distance = distance(img_hash, rotated_hash, 'hamming')/(256)
             rotated_success = (rotated_hamming_distance >= hamming_threshold)
             rotated_l2 = distance(image, rotated_img)
-            print(f'BMP2JPEG:\nRelative Hamming Distance: {rotated_hamming_distance:.4f}\nHash 1: {img_hash}\nHash 2: {rotated_hash}')
+            print(f'Rotating:\nRelative Hamming Distance: {rotated_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(rotated_hash)}')
             
             metrics = {
                 'Image Path': [image_path],
