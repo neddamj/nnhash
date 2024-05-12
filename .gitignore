@@ -1,4 +1,5 @@
-nhcalc
+inversion/nhcalc
+attacks/nhcalc
 .DS_Store
 images
 logs
