@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -22,6 +23,8 @@ class CIFAR10:
         plt.show()
 
     def save_to_disk(self, data, path='../images', num_images=100):
+        if not os.path.exists(path):
+            os.makedirs(path)
         assert data.shape[-1] == 3, "Please pass the image data to the function rather than the labels"
         dist = np.random.randint(low=0, high=10000, size=num_images)
         for i in range(num_images):
@@ -39,6 +42,8 @@ class IMAGENETTE:
         return ds
 
     def save_to_disk(self, data, path='../images', num_images=100):
+        if not os.path.exists(path):
+            os.makedirs(path)
         assert isinstance(data, tf.data.Dataset)
         dist = np.random.randint(low=0, high=10000, size=num_images)
         for i, example in enumerate(data):
