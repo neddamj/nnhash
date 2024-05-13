@@ -18,27 +18,28 @@ class ZOSignSGDttack:
         self.l2_tolerance = l2_tolerance
         self.search_steps = search_steps
 
-    def grad_estimate(self, img):
+    def grad_estimate(self, img, hash_func):
         _grads = np.zeros_like(img).astype(np.float64)
         _shape = img.shape
         print('Estimating Gradients...')
         for _ in range(self.max_queries):
             exp_noise = np.random.randn(*_shape)
             pert_img = img + self.epsilon * (255 * exp_noise)
-            hamm_dist = utils.distance(utils.compute_hash(pert_img), 
-                                       utils.compute_hash(img), 
-                                       'hamming')
+            hamm_dist = utils.distance(utils.compute_hash(pert_img, hash_func=hash_func), 
+                                       utils.compute_hash(img, hash_func=hash_func), 
+                                       'hamming',
+                                       hash_func=hash_func)
             est_deriv = hamm_dist / self.epsilon
             _grads += est_deriv * exp_noise
         print('Gradient Estimation Complete...')
         return _grads, 2*self.max_queries
 
-    def attack(self, img_path):
+    def attack(self, img_path, hash_func):
         # Initialize the image
         filename, filetype = img_path.split('.')
         zosignsgd_filename = f'{filename}_zosignsgd.bmp'
         img = utils.load_img(img_path)
-        grads, num_queries = self.grad_estimate(img)
+        grads, num_queries = self.grad_estimate(img, hash_func=hash_func)
         counter = 0
         while True:
             counter += 1
@@ -71,8 +72,8 @@ if __name__ == "__main__":
     img_path = f'/Volumes/TempRAM/{img_path[2]}.{filetype}'
     max_queries = 100
     epsilon = 0.2
-    hamming_threshold = int(0.1 * 127)
+    hamming_threshold = int(0.1 * 128)
     zo_signsgd = ZOSignSGDttack(max_queries=max_queries, epsilon=epsilon, hamming_threshold=hamming_threshold)
-    perturbed_img_path, zo_queries = zo_signsgd.attack(img_path)
+    perturbed_img_path, zo_queries = zo_signsgd.attack(img_path, hash_func='neuralhash')
     plt.imshow(utils.load_img(perturbed_img_path))
     plt.show()

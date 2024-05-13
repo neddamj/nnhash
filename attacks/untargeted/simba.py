@@ -1,6 +1,3 @@
-"""
-    Usage: python simba.py --folder_path '../../images/' --img_path '../../images/1.bmp'
-"""
 import sys
 sys.path.append('..')
 
@@ -41,7 +38,8 @@ class SimBAttack:
             img: np.array,
             stepsize: int,
             init_hash: int,
-            fast: bool) -> Tuple[np.array, int]:
+            fast: bool,
+            hash_func: str) -> Tuple[np.array, int]:
         # Create the additive and subtractive images
         add_img, sub_img = copy.deepcopy(img), copy.deepcopy(img)
         X, Y, Z = self.sample_pixel(img)
@@ -58,13 +56,13 @@ class SimBAttack:
         add_img = np.clip(add_img, 0.0, 255.0)
         sub_img = np.clip(sub_img, 0.0, 255.0)
         # Compute the hash values of the all images
-        img_hash = utils.compute_hash(img)
-        add_hash = utils.compute_hash(add_img)
-        sub_hash = utils.compute_hash(sub_img)
+        img_hash = utils.compute_hash(img, hash_func=hash_func)
+        add_hash = utils.compute_hash(add_img, hash_func=hash_func)
+        sub_hash = utils.compute_hash(sub_img, hash_func=hash_func)
         # Compute hamming distances
-        img_hamm = utils.distance(init_hash, img_hash, 'hamming')
-        add_hamm = utils.distance(init_hash, add_hash, 'hamming')
-        sub_hamm = utils.distance(init_hash, sub_hash, 'hamming')
+        img_hamm = utils.distance(init_hash, img_hash, 'hamming', hash_func=hash_func)
+        add_hamm = utils.distance(init_hash, add_hash, 'hamming', hash_func=hash_func)
+        sub_hamm = utils.distance(init_hash, sub_hash, 'hamming', hash_func=hash_func)
 
         # Find the image with the largest hamming distance and return it
         hamming_distances = [img_hamm, add_hamm, sub_hamm]
@@ -72,13 +70,13 @@ class SimBAttack:
         idx = np.argmax(hamming_distances) if max(hamming_distances) != min(hamming_distances) else random.randint(0, 2)
         return (images[idx], hamming_distances[idx], 3)
 
-    def attack(self, img_path: str) -> Tuple[str, int]:
+    def attack(self, img_path: str, hash_func: str) -> Tuple[str, int]:
         # Initialize the image
         filename, filetype = img_path.split('.')
         img = utils.load_img(img_path).astype(np.float32)
         orig_img = copy.deepcopy(img)
         # Compute the hash of the image
-        init_hash = utils.compute_hash(img_path)
+        init_hash = utils.compute_hash(img_path, hash_func=hash_func)
         stepsize = int(255*self.eps)
         step_counter = 0
         # Filename of the final SimBA image
@@ -86,7 +84,7 @@ class SimBAttack:
         print('[INFO] SimBA starting...')
         for _ in range(self.max_steps):
             step_counter += 1
-            img, hamming_dist, queries = self.simba(img, stepsize, init_hash, self.fast)
+            img, hamming_dist, queries = self.simba(img, stepsize, init_hash, self.fast, hash_func)
             l2_dist = utils.distance(img, orig_img, 'l2')
             print(f'Step: {step_counter} L2 Dist: {l2_dist} Hamming Dist: {hamming_dist}')
             if hamming_dist >= self.hamming_threshold and l2_dist >= self.l2_threshold:
@@ -132,4 +130,4 @@ if __name__ == "__main__":
                     l2_threshold=20, 
                     max_steps=max_steps, 
                     fast=True)
-    simba.attack(img_path=img_path)
+    simba.attack(img_path=img_path, hash_func='neuralhash')

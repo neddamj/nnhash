@@ -25,7 +25,7 @@ class NESAttack:
         self.l2_tolerance = l2_tolerance
         self.num_samples = num_samples
 
-    def nes_gradient_estimate(self, img, mean=0, std=0.1, sigma=0.5, num_samples=100):
+    def nes_gradient_estimate(self, img, mean=0, std=0.1, sigma=0.5, num_samples=100, hash_func='neuralhash'):
         grads = []
         num_queries = 0
         print('Estimating gradients with NES...')
@@ -33,21 +33,21 @@ class NESAttack:
             noise = np.random.normal(mean, std, size=img.shape)
             new = img + sigma*noise*255
             # Find the hamming dist
-            orig_hash = utils.compute_hash(img)
-            perterbed_hash = utils.compute_hash(new)
-            g = noise*utils.distance(orig_hash, perterbed_hash, 'hamming')
+            orig_hash = utils.compute_hash(img, hash_func=hash_func)
+            perterbed_hash = utils.compute_hash(new, hash_func=hash_func)
+            g = noise*utils.distance(orig_hash, perterbed_hash, 'hamming', hash_func=hash_func)
             grads.append(g)
             num_queries += 2
         est_grad = np.mean(np.array(grads), axis=0)
         return est_grad/(2*np.pi*sigma), num_queries
 
-    def attack(self, img_path):
+    def attack(self, img_path, hash_func):
         # Initialize the image
         filename, filetype = img_path.split('.')
         img = utils.load_img(img_path)
         num_queries, counter = 0, 0
         # Estimate gradients with NES and find the grad direction
-        est_grad, num_queries = self.nes_gradient_estimate(img, mean=self.mean, std=self.std, sigma=self.sigma, num_samples=self.num_samples)
+        est_grad, num_queries = self.nes_gradient_estimate(img, mean=self.mean, std=self.std, sigma=self.sigma, num_samples=self.num_samples, hash_func=hash_func)
         grad_direction = np.sign(est_grad)
         while True:
             counter += 1
@@ -82,6 +82,6 @@ if __name__ == "__main__":
     nes_sigma = 0.7
     nes_eps = 0.005
     nes = NESAttack(mean=nes_mean, std=nes_std, sigma=nes_sigma, eps=nes_eps)
-    perturbed_img_path, nes_queries = nes.attack(img_path)
+    perturbed_img_path, nes_queries = nes.attack(img_path, hash_func='neuralhash')
     perturbed_img = utils.load_img(perturbed_img_path)
     plt.imshow(perturbed_img)
