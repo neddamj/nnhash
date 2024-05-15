@@ -10,13 +10,9 @@ from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
-
 import lpips
 
-# Constants for training
-NUM_EPOCHS = 35
 BATCH_SIZE = 1
-LEARNING_RATE = 1e-3
 DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
 
 torch.manual_seed(1337)
@@ -42,7 +38,7 @@ else:
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', transforms=transform)
+dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', hash_func=args.hash_func, transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model 
@@ -57,7 +53,7 @@ perceptual_sim = lpips.LPIPS(net='vgg')
 
 avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
-    if i == 20:
+    if i == 5:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
@@ -85,14 +81,6 @@ for i, (hash, image) in enumerate(loader):
     print(f'LPIPS Score: {d.detach().numpy()}')
     avg_lpips.append(d.detach().numpy())
     
-    """
-    # Compute the hamming distance between the predicted image
-    # and the original
-    pred_hash = compute_hash(pred_img)
-    true_hash = compute_hash(image)
-    hamm_dist = hamming_distance(true_hash, pred_hash)
-    avg_hamm_dist.append(hamm_dist)
-    """
     image, pred_img = image.permute(1, 2, 0), pred_img.permute(1, 2, 0)
 
     if args.display:
@@ -104,9 +92,9 @@ for i, (hash, image) in enumerate(loader):
         fig.add_subplot(rows, cols, 2)
         plt.imshow(image)
         plt.title('Ground Truth')
+        plt.axis('off')
         plt.show()
 
 print(f'The average l2 distance is {np.array(avg_l2_dist).mean()} +- {np.std(np.array(avg_l2_dist))} units')
 print(f'The average SSIM is {np.array(avg_ssim).mean()} +- {np.std(np.array(avg_ssim))} units')
 print(f'The average LPIPS distance between the images is {np.array(avg_lpips).mean()} +- {np.std(np.array(avg_lpips))} units')
-#print(f'The hamming distance between the images is {np.array(avg_hamm_dist).mean()}')

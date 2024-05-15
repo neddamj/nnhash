@@ -9,9 +9,10 @@ import pickle
 import os
 
 class Hash2ImgDataset(Dataset):
-    def __init__(self, image_paths, hash_paths, transforms=None):
+    def __init__(self, image_paths, hash_paths, hash_func='photodna', transforms=None):
         self.transforms = transforms
         self.image_paths = image_paths
+        self.hash_func = hash_func
         with open(hash_paths, 'rb') as f:
             self.hashes = pickle.load(f)
 
@@ -22,7 +23,7 @@ class Hash2ImgDataset(Dataset):
         # Get the image at a specified index and its hash tensor
         image_path = f'{self.image_paths}/{index+1}.jpeg'
         image = Image.open(image_path)
-        hash = hash2tensor(self.hashes[index])
+        hash = hash2tensor(self.hashes[index], hash_func=self.hash_func)
 
         # Apply specified transforms
         if self.transforms:
@@ -30,7 +31,7 @@ class Hash2ImgDataset(Dataset):
         
         return hash, image
     
-def save_data(split, dataset):
+def save_data(split):
     data = train_data if split == 'train' else val_data
     hashes = []
     for i, sample in enumerate(data):
