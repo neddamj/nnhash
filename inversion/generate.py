@@ -4,7 +4,6 @@ from torchvision import transforms
 
 from model import Hash2ImageModel
 from data import Hash2ImgDataset
-from hash import compute_hash, hamming_distance
 
 from skimage.metrics import structural_similarity as ssim
 import matplotlib.pyplot as plt
@@ -53,15 +52,17 @@ perceptual_sim = lpips.LPIPS(net='vgg')
 
 avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
-    if i == 5:
+    if i == 100:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
         pred_img = model(hash)   
     pred_img = pred_img.to(torch.device('cpu'))
     pred_img = pred_img.squeeze(0).detach().permute(1, 2, 0)
+    pred_img = (pred_img + 1)/2
     image = image.to(torch.device('cpu'))
     image = image.squeeze(0).detach().permute(1, 2, 0)
+    image = (image + 1)/2
     
     # Find per-pixel L2 distance between images. Images are already normalized to the
     # range [0, 1] so no need to normalize while calculating per-pixel norm
