@@ -19,6 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
     parser.add_argument('--epochs', help='Number of Epochs to train for', default=50, type=int)
     parser.add_argument('--batch_size', help='Batch size to be used in training', default=32, type=int)
+    parser.add_argument('--hash_func', help='Hash function that you want to invert', default='pdq', type=str)
     parser.add_argument('--learning_rate', help='Learning Rate to be used during training', default=5e-4, type=float)
     args = parser.parse_args()
 
@@ -44,11 +45,11 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5))
         ])
-    train_dataset = Hash2ImgDataset(image_paths='./_data/train/images', hash_paths='./_data/train/hashes.pkl', transforms=transform)
+    train_dataset = Hash2ImgDataset(image_paths='./_data/train/images', hash_paths='./_data/train/hashes.pkl', transforms=transform, hash_func=args.hash_func)
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE)
 
     # Initialize the model and send it to the proper device
-    model = Hash2ImageModel(rgb=rgb)
+    model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
     model.to(DEVICE)
     
     # Define the path to save the model

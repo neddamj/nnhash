@@ -9,7 +9,7 @@ import pickle
 import os
 
 class Hash2ImgDataset(Dataset):
-    def __init__(self, image_paths, hash_paths, hash_func='photodna', transforms=None):
+    def __init__(self, image_paths, hash_paths, hash_func='pdq', transforms=None):
         self.transforms = transforms
         self.image_paths = image_paths
         self.hash_func = hash_func
@@ -31,7 +31,7 @@ class Hash2ImgDataset(Dataset):
         
         return hash, image
     
-def save_data(split):
+def save_data(split, hash_func):
     data = train_data if split == 'train' else val_data
     hashes = []
     for i, sample in enumerate(data):
@@ -39,7 +39,7 @@ def save_data(split):
         img = sample[0]
         img = img.resize((64, 64))
         save_img(save_path, img)
-        hashes.append(compute_hash(save_path))
+        hashes.append(compute_hash(save_path, hash_func=hash_func))
         if (i+1) % 500 == 0:
             print(f'{i+1} image-hash pairs saved')
 
@@ -60,6 +60,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset', help='The name of the dataset you want to use in lower case', type=str)
     parser.add_argument('--train_len', help='The amount of datapoints to be used for training', default=10000, type=int)
     parser.add_argument('--val_len', help='The amount of datapoints to be used for testing', default=100, type=int)
+    parser.add_argument('--hash_func', help='Hash function that you want to invert', default='pdq', type=str)
     parser.add_argument('--skip', help='If no data loading is necessary then skip this step. Set to true if you need to change datasets before training/inference.', 
                         default=0, type=int)
     args = parser.parse_args()
@@ -93,5 +94,5 @@ if __name__ == '__main__':
                 os.makedirs(f'{sub_dir_path}/images')
             # Save the data
             print(f'[INFO] Saving {split} data ...')
-            save_data(split, dataset)
+            save_data(split, hash_func=args.hash_func)
             print(f'[INFO] Complete ...')

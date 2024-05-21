@@ -40,7 +40,7 @@ def compute_hash(image_path, hash_file_path='./nhcalc', hash_func='pdq'):
         return hash
         
 
-def hash2tensor(hash, hash_func='photodna'):
+def hash2tensor(hash, hash_func='pdq'):
     if hash_func == 'neuralhash':
         hash = bin(hash)[2:]
         hash_tensor = torch.tensor([float(num) for num in hash])
