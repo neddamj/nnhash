@@ -1,4 +1,4 @@
 echo '[INFO] Beginning data loading...'
-python data.py --dataset 'celeba' --train_len 200 --val_len 20 --skip 1
+python data.py --dataset 'mnist' --train_len 10000 --val_len 100 --hash_func 'neuralhash' --skip 1
 echo '[INFO] Data loading complete, running inference now...'
-python generate.py --rgb 1 --display 1 --hash_func 'photodnapdq' --path /path/to/model
+python generate.py --rgb 0 --display 0 --hash_func 'neuralhash' --path /path/to/your/model
