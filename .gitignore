@@ -33,3 +33,9 @@ attacks/neuralhash_128x96_seed1.dat
 mnist_data
 celeba_data
 photodna_cdf
+celeba_data_photodna
+celeba_data_pdq
+celeba_data_neuralhash
+mnist_data_photodna
+mnist_data_pdq
+mnist_data_neuralhash
