@@ -7,6 +7,7 @@ import utils
 # Numerical computing and display imports
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 class NESAttack:
     def __init__(self,
@@ -42,8 +43,11 @@ class NESAttack:
         return est_grad/(2*np.pi*sigma), num_queries
 
     def attack(self, img_path, hash_func):
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_nes.bmp'
+        nes_filename = os.path.sep.join(path)
         # Initialize the image
-        filename, filetype = img_path.split('.')
         img = utils.load_img(img_path)
         num_queries, counter = 0, 0
         # Estimate gradients with NES and find the grad direction
@@ -58,7 +62,6 @@ class NESAttack:
             l2_distance = utils.distance(img, perturbed_img)
             print(f'eps: {self.eps} Lower Bound: {self.l2_threshold-self.l2_tolerance} Upper Bound: {self.l2_threshold} L2 Dist: {l2_distance}')
             # Termination condition
-            nes_filename = f'{filename}_nes.bmp'
             if counter < 20:
                 if l2_distance > self.l2_threshold:
                     self.eps /= 2
@@ -72,16 +75,3 @@ class NESAttack:
                 utils.save_img(nes_filename, perturbed_img)
                 break
         return nes_filename, num_queries
-    
-
-if __name__ == "__main__":
-    idx = 1
-    img_path = f'../../images/{idx}.bmp' 
-    nes_mean = 0
-    nes_std = 0.1
-    nes_sigma = 0.7
-    nes_eps = 0.005
-    nes = NESAttack(mean=nes_mean, std=nes_std, sigma=nes_sigma, eps=nes_eps)
-    perturbed_img_path, nes_queries = nes.attack(img_path, hash_func='neuralhash')
-    perturbed_img = utils.load_img(perturbed_img_path)
-    plt.imshow(perturbed_img)

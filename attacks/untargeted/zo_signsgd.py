@@ -3,6 +3,7 @@ sys.path.append('..')
 
 # Helper imports
 import utils
+import os
 
 # Numerical computing and display imports
 import matplotlib.pyplot as plt
@@ -35,9 +36,11 @@ class ZOSignSGDttack:
         return _grads, 2*self.max_queries
 
     def attack(self, img_path, hash_func):
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_zosignsgd.bmp'
+        zosignsgd_filename = os.path.sep.join(path)
         # Initialize the image
-        filename, filetype = img_path.split('.')
-        zosignsgd_filename = f'{filename}_zosignsgd.bmp'
         img = utils.load_img(img_path)
         grads, num_queries = self.grad_estimate(img, hash_func=hash_func)
         counter = 0
@@ -62,18 +65,3 @@ class ZOSignSGDttack:
                 utils.save_img(zosignsgd_filename, perturbed_img)
                 break
         return zosignsgd_filename, num_queries
-
-
-if __name__ == "__main__":
-    idx = 0
-    img_path = f'../../images/{idx+1}.bmp' 
-    _, _, _, _, path, filetype = img_path.split('.')
-    img_path = path.split('/')
-    img_path = f'/Volumes/TempRAM/{img_path[2]}.{filetype}'
-    max_queries = 100
-    epsilon = 0.2
-    hamming_threshold = int(0.1 * 128)
-    zo_signsgd = ZOSignSGDttack(max_queries=max_queries, epsilon=epsilon, hamming_threshold=hamming_threshold)
-    perturbed_img_path, zo_queries = zo_signsgd.attack(img_path, hash_func='neuralhash')
-    plt.imshow(utils.load_img(perturbed_img_path))
-    plt.show()

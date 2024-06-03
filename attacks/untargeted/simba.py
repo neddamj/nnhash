@@ -13,6 +13,7 @@ import logging
 import random
 import utils
 import copy
+import os
 
 class SimBAttack:
     def __init__(self, 
@@ -72,7 +73,7 @@ class SimBAttack:
 
     def attack(self, img_path: str, hash_func: str) -> Tuple[str, int]:
         # Initialize the image
-        filename, filetype = img_path.split('.')
+        #filename, filetype = img_path.split('.')
         img = utils.load_img(img_path).astype(np.float32)
         orig_img = copy.deepcopy(img)
         # Compute the hash of the image
@@ -80,7 +81,10 @@ class SimBAttack:
         stepsize = int(255*self.eps)
         step_counter = 0
         # Filename of the final SimBA image
-        simba_filename = f'{filename}_simba.bmp'
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_simba.bmp'
+        simba_filename = os.path.sep.join(path)
         print('[INFO] SimBA starting...')
         for _ in range(self.max_steps):
             step_counter += 1
@@ -93,41 +97,3 @@ class SimBAttack:
         utils.save_img(simba_filename, img)
         simba_queries = 1 + queries*step_counter
         return (simba_filename, simba_queries)
-
-if __name__ == "__main__":
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-i", "--img_path", help="Path to the image for the attack")
-    ap.add_argument("-f", "--folder_path", required=True, help="Path to the directory containing images")
-    args = vars(ap.parse_args())
-
-    # Load and Prepare the Data
-    if args['img_path'] is not None:
-        img_path = args['img_path']
-    if args['folder_path'] is not None:
-        folder_path = args['folder_path']
-    
-    dataset = 'imagenette'    
-    if dataset == 'cifar10':
-        images = CIFAR10()
-    if dataset == 'imagenette':
-        images = IMAGENETTE()
-    x = images.load()
-    images.save_to_disk(x, folder_path, num_images=100)
-    
-    folder_path = utils.move_data_to_temp_ram(folder_path, ram_size_mb=50)
-
-    # Hyperparams
-    epsilon = 0.9
-    max_mismatched_bits = 16
-    max_steps = 5000
-
-    # Attack NeuralHash
-    _, _, _, _, path, filetype = img_path.split('.')
-    img_path = path.split('/')
-    img_path = f'{folder_path}{img_path[2]}.{filetype}'
-    simba = SimBAttack(eps=epsilon, 
-                    hamming_threshold=max_mismatched_bits,
-                    l2_threshold=20, 
-                    max_steps=max_steps, 
-                    fast=True)
-    simba.attack(img_path=img_path, hash_func='neuralhash')
