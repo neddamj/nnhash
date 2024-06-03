@@ -29,7 +29,7 @@ class CIFAR10:
         dist = np.random.randint(low=0, high=10000, size=num_images)
         for i in range(num_images):
             img = data[dist[i]]
-            save_img(f'{path}{i+1}.bmp', img)
+            save_img(os.path.join(path, f'{i+1}.bmp'), img)
         print('[INFO] Images saved')
 
 class IMAGENETTE:
@@ -48,16 +48,8 @@ class IMAGENETTE:
         dist = np.random.randint(low=0, high=10000, size=num_images)
         for i, example in enumerate(data):
             img = example['image']
-            save_img(f'{path}{i+1}.bmp', img)
-            resize_imgs(f'{path}{i+1}.bmp', new_size=(224,224))
+            save_img(os.path.join(path, f'{i+1}.bmp'), img) 
+            resize_imgs(os.path.join(path, f'{i+1}.bmp'), new_size=(224,224))
             if i == num_images-1:
                 break
         print('[INFO] Images saved')
-
-if __name__ == "__main__":
-    data = IMAGENETTE()
-    ds = data.load()
-    #data.display(ds, x_test)
-
-    folder_path = '../images/'
-    data.save_to_disk(ds, folder_path)

@@ -7,6 +7,13 @@ import pdqhash
 import glob
 import os
 
+from ctypes import cast
+from ctypes import cdll
+from ctypes import c_int
+from ctypes import c_ubyte
+from ctypes import POINTER
+from ctypes import c_char_p
+
 ## Adversarial Helper Functions
 def distance(x, y, type='l2', hash_func='neuralhash'):
     if type == 'l2':
@@ -41,12 +48,12 @@ def compute_hash(image_path, batch=False, hash_file_path='../nhcalc', hash_func=
             # Handle the input when an image is supplied instead of the path
             if type(image_path) == np.ndarray:
                 try:
-                    path = '../images/hash.bmp'
+                    path = os.path.sep.join(['..', 'images', 'hash.bmp'])
                     save_img(path, image_path)
                 except:
-                    path = '../../images/hash.bmp'
+                    path = os.path.sep.join(['..', '..', 'images', 'hash.bmp'])
                     save_img(path, image_path)
-                image_path = path
+                    image_path = path
             output = subprocess.check_output([hashing_file_name, image_path])
             hash = output.strip().split()
             hash = int(hash[1], 16)
@@ -54,23 +61,48 @@ def compute_hash(image_path, batch=False, hash_file_path='../nhcalc', hash_func=
     elif hash_func == 'pdq':
         if type(image_path) == np.ndarray:
             try:
-                path = '../images/hash.bmp'
+                path = os.path.sep.join(['..', 'images', 'hash.bmp'])
                 save_img(path, image_path)
             except:
-                path = '../../images/hash.bmp'
+                path = os.path.sep.join(['..', '..', 'images', 'hash.bmp'])
                 save_img(path, image_path)
             image_path = path
         image = load_img(image_path)
         hash, _ = pdqhash.compute(image)
         return hash
+    else: # photodna
+        if type(image_path) == np.ndarray:
+            try:
+                path = os.path.sep.join(['..', 'images', 'hash.bmp'])
+                save_img(path, image_path)
+            except:
+                path = os.path.sep.join(['..', '..', 'images', 'hash.bmp'])
+                save_img(path, image_path)
+            image_path = path
+            hash_val = generatePhotodnaHash(image_path)
+            return hash_val
     
-def hash2array(hash):
-    hash = bin(hash)[2:]
-    hash_tensor = np.array([float(val) for val in hash])
-    if hash_tensor.shape[0] != 128:
-        num_zeros = 128 - hash_tensor.shape[0]
-        hash_tensor = np.concatenate((np.array([0 for _ in range(num_zeros)]), hash_tensor))
-    return hash_tensor
+def generatePhotodnaHash(imagePath):
+    outputFolder = os.getcwd()
+    libName = os.path.join('..', 'PhotoDNAx64.dll')
+    #workerId = multiprocessing.current_process().name
+    imageFile = Image.open(imagePath, 'r')
+    if imageFile.mode != 'RGB':
+        imageFile = imageFile.convert(mode = 'RGB')
+    libPhotoDNA = cdll.LoadLibrary(os.path.join(outputFolder, libName))
+
+    ComputeRobustHash = libPhotoDNA.ComputeRobustHash
+    ComputeRobustHash.argtypes = [c_char_p, c_int, c_int, c_int, POINTER(c_ubyte), c_int]
+    ComputeRobustHash.restype = c_ubyte
+
+    hashByteArray = (c_ubyte * 144)()
+    ComputeRobustHash(c_char_p(imageFile.tobytes()), imageFile.width, imageFile.height, 0, hashByteArray, 0)
+
+    hashPtr = cast(hashByteArray, POINTER(c_ubyte))
+    hashList = [str(hashPtr[i]) for i in range(144)]
+    hashString = ','.join([i for i in hashList])
+    hashList = hashString.split(',')
+    return hashList
 
 ## Data Helper Functions
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
@@ -85,9 +117,9 @@ def resize_imgs(image_paths, new_size=(512, 512), batch=False):
         img.save(image_paths)
 
 def load_img_paths(img_folder):
-    if img_folder[-1] == '/':
-        return glob.glob(f'{img_folder}*')
-    return glob.glob(f'{img_folder}/*')
+    if img_folder[-1] == os.path.sep:
+        return glob.glob(os.path.join(img_folder, '*')) 
+    return glob.glob(os.path.sep.join([img_folder, '*'])) 
  
 def save_img(save_path, img):
     img = Image.fromarray(np.uint8(img))
