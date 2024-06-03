@@ -15,6 +15,7 @@ import logging
 import random
 import utils
 import copy
+import os
 
 class SimBAttack:
     def __init__(self, 
@@ -70,17 +71,16 @@ class SimBAttack:
         return (images[idx], hamming_distances[idx], 3)
 
     def attack(self, img_path: str, target_path: str) -> Tuple[str, int]:
-        # Initialize the image
-        filename, filetype = img_path.split('.')
         img = utils.load_img(img_path).astype(np.float32)
         target_img = utils.load_img(target_path).astype(np.float32)
-        orig_img = copy.deepcopy(img)
         # Compute the hash of the image
         target_hash = utils.compute_hash(target_path)
         stepsize = int(255*self.eps)
         step_counter = 0
-        # Filename of the final SimBA image
-        simba_filename = f'{filename}_simba.bmp'
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_simba.bmp'
+        simba_filename = os.path.sep.join(path)
         print('[INFO] SimBA starting...')
         for _ in range(self.max_steps):
             step_counter += 1

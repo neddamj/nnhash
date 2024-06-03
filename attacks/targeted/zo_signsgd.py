@@ -1,6 +1,7 @@
 import sys
 sys.path.append('..')
 
+import os
 import utils
 import numpy as np
 
@@ -31,9 +32,10 @@ class ZOSignSGDttack:
         return _grads, 2*self.max_queries
 
     def attack(self, img_path, target_path):
-        # Initialize the image
-        filename, filetype = img_path.split('.')
-        zosignsgd_filename = f'{filename}_zosignsgd.bmp'
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_simba.bmp'
+        zosignsgd_filename = os.path.sep.join(path)
         img = utils.load_img(img_path)
         grads, num_queries = self.grad_estimate(img, target_path)
         counter = 0

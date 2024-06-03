@@ -1,6 +1,7 @@
 import sys
 sys.path.append('..')
 
+import os
 import utils
 import numpy as np
 
@@ -36,10 +37,13 @@ class NESAttack:
         return est_grad/(2*np.pi*self.sigma), num_queries
 
     def attack(self, img_path, target_path):
-        # Initialize the image
-        filename, filetype = img_path.split('.')
+        # Initialize the image and target hash
         img = utils.load_img(img_path)
-        target_img = utils.load_img(target_path)
+        target_hash = utils.compute_hash(target_path)
+        # Define the filepath
+        path = img_path.split('/') 
+        path[-1] = f'{img_path.split("/")[3].split(".")[0]}_nes.bmp'
+        nes_filename = os.path.sep.join(path)
         num_queries, counter = 0, 0
         # Estimate gradients with NES and find the grad direction
         est_grad, num_queries = self.nes_gradient_estimate(img, target_path)
@@ -51,11 +55,10 @@ class NESAttack:
             perturbed_img = np.clip(perturbed_img, 0, 255).astype(np.uint8)
             # Re-run the update if there isnt enough distortion in the image
             l2_distance = utils.distance(img, perturbed_img)
-            target_hash, perturbed_hash = utils.compute_hash(target_path), utils.compute_hash(perturbed_img)
+            perturbed_hash = utils.compute_hash(perturbed_img)
             hamming_dist = utils.distance(target_hash, perturbed_hash, 'hamming')
             print(f'eps: {self.eps} Hamming Dist to Target: {hamming_dist} L2 Dist to Target: {l2_distance}')
             # Termination condition
-            nes_filename = f'{filename}_nes.bmp'
             if counter < 20:
                 if hamming_dist > self.hamming_threshold:
                     self.eps *= 1.5
