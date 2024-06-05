@@ -22,7 +22,6 @@ val_data
 data
 _data
 __pycache__
-saved_models
 /outputs
 *.pkl
 *.txt
@@ -39,3 +38,4 @@ celeba_data_neuralhash
 mnist_data_photodna
 mnist_data_pdq
 mnist_data_neuralhash
+comparison.ipynb
