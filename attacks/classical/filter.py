@@ -26,7 +26,7 @@ def vignette(im):
 
 if __name__ == "__main__":
     # Load data to disk
-    folder_path = '../../images/'
+    folder_path = os.path.sep.join(['..', '..', 'images'])
     if not os.path.exists(folder_path):
         os.mkdir(folder_path)
     if len(os.listdir(folder_path)) == 0:
@@ -39,21 +39,22 @@ if __name__ == "__main__":
         images.save_to_disk(x, folder_path, num_images=100)
         del(x)
         del(images)
-
+    
+    hash_func = 'pdq'
     hamming_thresholds = [0.1, 0.2, 0.3, 0.4]
     for hamming_threshold in hamming_thresholds:
         for i in range(100):
-            image_path = f'../../images/{i+1}.bmp'
+            image_path = os.path.sep.join(['..', '..', 'images', f'{i+1}.bmp'])
             image = load_img(image_path)
             print(f'\nImage {i}')
             # Vignette filter
             vignette_img = vignette(image)
-            img_hash, vig_hash = compute_hash(image_path), compute_hash(vignette_img)
-            vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming')/(256)
+            img_hash, vig_hash = compute_hash(image_path, hash_func=hash_func), compute_hash(vignette_img, hash_func=hash_func)
+            vignette_hamming_distance = distance(img_hash, vig_hash, 'hamming', hash_func=hash_func)/(256)
             vignette_success = (vignette_hamming_distance >= hamming_threshold)
             vignette_l2 = distance(image, vignette_img)
-            save_img(f'../../images/{i+1}_filt.bmp', vignette_img)
-            print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(vig_hash)}')
+            save_img(os.path.sep.join(['..', '..', 'images', f'{i+1}_filt.bmp']), vignette_img)  
+            print(f'BMP2JPEG:\nRelative Hamming Distance: {vignette_hamming_distance:.4f}')
             
             metrics = {
                 'Image Path': [image_path],
@@ -65,7 +66,10 @@ if __name__ == "__main__":
             }
             
             df = pd.DataFrame.from_dict(metrics)
-            file_path = f'metrics/{hamming_threshold}/filter.csv'
+            base_path = os.path.sep.join(['metrics', f'{hamming_threshold}'])
+            if not os.path.exists(base_path):
+                os.makedirs(base_path, exist_ok=True)
+            file_path = os.path.sep.join([base_path, 'filter.csv'])
             if os.path.exists(file_path):
                 df.to_csv(file_path, mode='a', index=False, header=False)
             else: 

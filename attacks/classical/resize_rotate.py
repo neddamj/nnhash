@@ -26,7 +26,7 @@ def flip(img):
 
 if __name__ == "__main__":
     # Load data to disk
-    folder_path = '../../images/'
+    folder_path = os.path.sep.join(['..', '..', 'images'])
     if not os.path.exists(folder_path):
         os.mkdir(folder_path)
     if len(os.listdir(folder_path)) == 0:
@@ -40,27 +40,28 @@ if __name__ == "__main__":
         del(x)
         del(images)
 
+    hash_func = 'pdq'
     hamming_thresholds = [0.1, 0.2, 0.3, 0.4]
     for hamming_threshold in hamming_thresholds:
         for i in range(100):
-            image_path = f'../../images/{i+1}.bmp'
+            image_path = os.path.sep.join(['..', '..', 'images', f'{i+1}.bmp'])
             image = load_img(image_path)
             print(f'\nImage {i}')
             # Resize image
             reseized_img = resize(image, size_ratio=0.5)
-            save_img(f'../../images/{i+1}_res.bmp', reseized_img)
-            img_hash, resized_hash = compute_hash(image_path), compute_hash(reseized_img)
-            resized_hamming_distance = distance(img_hash, resized_hash, 'hamming')/(256)
+            save_img(os.path.sep.join(['..', '..', 'images', f'{i+1}_res.bmp']), reseized_img)
+            img_hash, resized_hash = compute_hash(image_path, hash_func=hash_func), compute_hash(reseized_img, hash_func=hash_func)
+            resized_hamming_distance = distance(img_hash, resized_hash, 'hamming', hash_func=hash_func)/(256)
             resized_success = (resized_hamming_distance >= hamming_threshold)
-            print(f'Resizing:\nRelative Hamming Distance: {resized_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(resized_hash)}')
+            print(f'Resizing:\nRelative Hamming Distance: {resized_hamming_distance:.4f}')
             # Rotate image
             rotated_img = rotate(image, angle=90)
-            save_img(f'../../images/{i+1}_rot.bmp', rotated_img)
-            img_hash, rotated_hash = compute_hash(image_path), compute_hash(rotated_img)
-            rotated_hamming_distance = distance(img_hash, rotated_hash, 'hamming')/(256)
+            save_img(os.path.sep.join(['..', '..', 'images', f'{i+1}_rot.bmp']), rotated_img)
+            img_hash, rotated_hash = compute_hash(image_path, hash_func=hash_func), compute_hash(rotated_img, hash_func=hash_func)
+            rotated_hamming_distance = distance(img_hash, rotated_hash, 'hamming', hash_func=hash_func)/(256)
             rotated_success = (rotated_hamming_distance >= hamming_threshold)
             rotated_l2 = distance(image, rotated_img)
-            print(f'Rotating:\nRelative Hamming Distance: {rotated_hamming_distance:.4f}\nHash 1: {hex(img_hash)}\nHash 2: {hex(rotated_hash)}')
+            print(f'Rotating:\nRelative Hamming Distance: {rotated_hamming_distance:.4f}')
             
             metrics = {
                 'Image Path': [image_path],
@@ -75,7 +76,10 @@ if __name__ == "__main__":
             }
             
             df = pd.DataFrame.from_dict(metrics)
-            file_path = f'metrics/{hamming_threshold}/resize_rotate.csv'
+            base_path = os.path.sep.join(['metrics', f'{hamming_threshold}', os.path.sep])
+            if not os.path.exists(base_path):
+                os.makedirs(base_path, exist_ok=True)
+            file_path = os.path.sep.join([base_path, 'resize_rotate.csv'])
             if os.path.exists(file_path):
                 df.to_csv(file_path, mode='a', index=False, header=False)
             else: 
