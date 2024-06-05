@@ -67,31 +67,32 @@ if __name__ == '__main__':
     
     # Load the train and val splits
     if not args.skip:
+        root_path = os.path.sep.join(['.', 'data'])
         data = args.dataset
         if data == 'celeba':
-            dataset = datasets.CelebA(root='./data', split='train', target_type='identity', transform=None, download=True)
+            dataset = datasets.CelebA(root=root_path, split='train', target_type='identity', transform=None, download=True)
         elif data == 'mnist':
-            dataset = datasets.MNIST(root='./data', train=True, download=True, transform=None)
+            dataset = datasets.MNIST(root=root_path, train=True, download=True, transform=None)
         elif data == 'stl10':
-            dataset = datasets.STL10(root='./data', split='train', download=True)
+            dataset = datasets.STL10(root=root_path, split='train', download=True)
         elif data == 'fashion':
-            dataset = datasets.FashionMNIST(root='./data', train=True, download=False)
+            dataset = datasets.FashionMNIST(root=root_path, train=True, download=False)
         else:
-            dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=None)
+            dataset = datasets.CIFAR10(root=root_path, train=True, download=True, transform=None)
         train_len, val_len = args.train_len, args.val_len
         train_data, val_data, _ = random_split(dataset, [train_len, val_len, len(dataset)-(train_len+val_len)])
         print(dataset)
         splits = ['train', 'val']
         for split in splits:
             # Create the dirs if they dont exist already
-            dir_path = f'./_data'
+            dir_path = os.path.sep.join(['.', '_data'])
             if not os.path.exists(dir_path):
                 os.makedirs(dir_path)
-            sub_dir_path = f'{dir_path}/{split}'
+            sub_dir_path = os.path.sep.join([dir_path, split])  #f'{dir_path}/{split}'
             if not os.path.exists(sub_dir_path):
                 os.makedirs(sub_dir_path)
-            if not os.path.exists(f'{sub_dir_path}/images'):
-                os.makedirs(f'{sub_dir_path}/images')
+            if not os.path.exists(os.path.sep.join([sub_dir_path, 'images'])):
+                os.makedirs(os.path.sep.join([sub_dir_path, 'images']))
             # Save the data
             print(f'[INFO] Saving {split} data ...')
             save_data(split, hash_func=args.hash_func)

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 import lpips
+import os
 
 BATCH_SIZE = 1
 DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
@@ -37,7 +38,7 @@ else:
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths='./_data/val/images', hash_paths='./_data/val/hashes.pkl', hash_func=args.hash_func, transforms=transform)
+dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'val', 'images']), hash_paths=os.path.sep.join(['.', '_data', 'val', 'hashes.pkl']), hash_func=args.hash_func, transforms=transform)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model 
@@ -52,7 +53,7 @@ perceptual_sim = lpips.LPIPS(net='vgg')
 
 avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
-    if i == 100:
+    if i == 10:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
@@ -90,6 +91,7 @@ for i, (hash, image) in enumerate(loader):
         fig.add_subplot(rows, cols, 1)
         plt.imshow(pred_img)
         plt.title('Prediction')
+        plt.axis('off')
         fig.add_subplot(rows, cols, 2)
         plt.imshow(image)
         plt.title('Ground Truth')

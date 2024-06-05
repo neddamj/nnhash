@@ -1,3 +1,4 @@
+import os
 from PIL import Image
 import torch
 import torch.nn as nn
@@ -61,7 +62,7 @@ class Hash2ImageModel(nn.Module):
         return x
     
 if __name__ == '__main__':
-    img_path = './_data/train/images/1.jpeg'
+    img_path = os.path.sep.join(['.', '_data', 'train', 'images', '1.jpeg'])
     img = Image.open(img_path)
     hash = compute_hash(np.array(img))
     hash_tensor = hash2tensor(hash)

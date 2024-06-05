@@ -12,6 +12,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import argparse
+import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -45,7 +46,7 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5))
         ])
-    train_dataset = Hash2ImgDataset(image_paths='./_data/train/images', hash_paths='./_data/train/hashes.pkl', transforms=transform, hash_func=args.hash_func)
+    train_dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'train', 'images']), hash_paths=os.path.sep.join(['.', '_data', 'train', 'hashes.pkl']), transforms=transform, hash_func=args.hash_func)
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE)
 
     # Initialize the model and send it to the proper device
@@ -55,7 +56,7 @@ if __name__ == '__main__':
     # Define the path to save the model
     now = datetime.now()
     dt = now.strftime('%Y-%m-%d_%H:%M:%S%')
-    model_path = f'saved_models/{dt}_{args.dataset}_saved_model.pth'
+    model_path = os.path.sep.join(['saved_models', f'{dt}_{args.dataset}_saved_model.pth'])
     
     # Training stuff
     early_stop = False
