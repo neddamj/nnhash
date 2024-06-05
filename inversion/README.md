@@ -1,2 +1,2 @@
-# Neuralhash Inversion
-Synthesizing images from Apple's NeuralHash with machine learning
+# Perceptual Hash Inversion
+Synthesizing images from Perceptual Hashing Algorithms with machine learning
