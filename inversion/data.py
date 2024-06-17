@@ -24,6 +24,7 @@ class Hash2ImgDataset(Dataset):
         image_path = f'{self.image_paths}/{index+1}.jpeg'
         image = Image.open(image_path)
         hash = hash2tensor(self.hashes[index], hash_func=self.hash_func)
+        hash = perturb_hash(hash, hash_func=self.hash_func)
 
         # Apply specified transforms
         if self.transforms:
@@ -50,6 +51,20 @@ def save_data(split, hash_func):
 
 def save_img(save_path, img):
     img.save(save_path)
+
+def perturb_hash(hash, p=0.1, hash_func='pdq'):
+    mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
+    mask = torch.ones_like(hash).int()
+    if hash_func == 'photodna':
+        mask[0][mask_indices] = 0
+        perturbed_hash = hash * mask
+    elif hash_func == 'pdq':
+        mask[mask_indices] = 0
+        perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(256)]).int()
+    else: # neuralhash
+        mask[mask_indices] = 0
+        perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
+    return perturbed_hash
 
 if __name__ == '__main__':
     '''
