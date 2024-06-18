@@ -9,10 +9,11 @@ import pickle
 import os
 
 class Hash2ImgDataset(Dataset):
-    def __init__(self, image_paths, hash_paths, hash_func='pdq', transforms=None):
+    def __init__(self, image_paths, hash_paths, hash_func='pdq', transforms=None, perturbation=0):
         self.transforms = transforms
         self.image_paths = image_paths
         self.hash_func = hash_func
+        self.perturbation = perturbation
         with open(hash_paths, 'rb') as f:
             self.hashes = pickle.load(f)
 
@@ -24,7 +25,7 @@ class Hash2ImgDataset(Dataset):
         image_path = f'{self.image_paths}/{index+1}.jpeg'
         image = Image.open(image_path)
         hash = hash2tensor(self.hashes[index], hash_func=self.hash_func)
-        hash = perturb_hash(hash, hash_func=self.hash_func)
+        hash = perturb_hash(hash, p=self.perturbation, hash_func=self.hash_func)
 
         # Apply specified transforms
         if self.transforms:

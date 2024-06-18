@@ -28,12 +28,20 @@ if __name__ == '__main__':
     NUM_EPOCHS = args.epochs
     TRAIN_BATCH_SIZE = args.batch_size
     LEARNING_RATE = 5e-4
-    DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
+    DEVICE = "cpu"
+    if torch.cuda.is_available():
+        DEVICE = "cuda"
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        DEVICE = "mps"
 
     torch.manual_seed(1337)    
 
     # Pocessing rgb or greyscale images
     rgb = args.rgb
+
+    # Magnitude of the perturbation to be applied to the hash vaules
+    # during training [0, 1)
+    perturbation = 0.1
 
     # Create the dataset and data loader for training
     if rgb:
@@ -46,7 +54,11 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.5), (0.5))
         ])
-    train_dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'train', 'images']), hash_paths=os.path.sep.join(['.', '_data', 'train', 'hashes.pkl']), transforms=transform, hash_func=args.hash_func)
+    train_dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'train', 'images']), 
+                                hash_paths=os.path.sep.join(['.', '_data', 'train', 'hashes.pkl']), 
+                                transforms=transform, 
+                                hash_func=args.hash_func, 
+                                perturbation=perturbation)
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE)
 
     # Initialize the model and send it to the proper device
@@ -56,7 +68,10 @@ if __name__ == '__main__':
     # Define the path to save the model
     now = datetime.now()
     dt = now.strftime('%Y-%m-%d_%H:%M:%S%')
-    model_path = os.path.sep.join(['saved_models', f'{dt}_{args.dataset}_saved_model.pth'])
+    if perturbation == 0:
+        model_path = os.path.sep.join(['saved_models', f'{args.hash_func}_{args.dataset}_model.pth'])
+    else:
+        model_path = os.path.sep.join(['saved_models', f'{perturbation}_{args.hash_func}_{args.dataset}_perturbed_model.pth'])
     
     # Training stuff
     early_stop = False
