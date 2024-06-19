@@ -13,7 +13,11 @@ import lpips
 import os
 
 BATCH_SIZE = 1
-DEVICE = 'mps' if torch.backends.mps.is_available() else 'cpu'
+DEVICE = "cpu"
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+    DEVICE = "mps"
 
 torch.manual_seed(1337)
 
@@ -38,12 +42,16 @@ else:
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'val', 'images']), hash_paths=os.path.sep.join(['.', '_data', 'val', 'hashes.pkl']), hash_func=args.hash_func, transforms=transform)
+dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'val', 'images']), 
+                          hash_paths=os.path.sep.join(['.', '_data', 'val', 'hashes.pkl']), 
+                          hash_func=args.hash_func, 
+                          transforms=transform,
+                          perturbation=0)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model 
 model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
-checkpoint = torch.load(args.path)
+checkpoint = torch.load(args.path, map_location=DEVICE)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
 model.eval()
