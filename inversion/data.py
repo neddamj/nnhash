@@ -54,6 +54,8 @@ def save_img(save_path, img):
     img.save(save_path)
 
 def perturb_hash(hash, p=0.1, hash_func='pdq'):
+    if p == 0:
+        return hash
     mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
     mask = torch.ones_like(hash).int()
     if hash_func == 'photodna':
