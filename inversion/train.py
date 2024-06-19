@@ -10,6 +10,7 @@ from data import Hash2ImgDataset
 
 from datetime import datetime
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 import numpy as np
 import argparse
 import os
@@ -74,8 +75,7 @@ if __name__ == '__main__':
         model_path = os.path.sep.join(['saved_models', f'{perturbation}_{args.hash_func}_{args.dataset}_perturbed_model.pth'])
     
     # Training stuff
-    early_stop = False
-    num_batches = 100 if early_stop else len(train_loader)
+    num_batches = len(train_loader)
     loss_tracker = []
     min_loss = float('inf')
 
@@ -88,9 +88,8 @@ if __name__ == '__main__':
     print('[INFO] Starting training...')
     for epoch in range(NUM_EPOCHS):
         train_loss = 0
-        for i, (hash, image) in enumerate(train_loader):
-            if i == num_batches:
-                break
+        pbar = tqdm(range(NUM_EPOCHS))
+        for i, (hash, image) in pbar:
             # Forward pass and loss calculation
             hash, images = hash.to(DEVICE), image.to(DEVICE)
             pred_imgs = model(hash)
@@ -101,7 +100,7 @@ if __name__ == '__main__':
             loss.backward()
             optimizer.step()
             scheduler.step()
-            print(f'Batch: {i+1}/{num_batches} Loss: {loss:.4f}')
+            pbar.set_description(f'Batch: {i+1}/{num_batches} Loss: {loss:.4f}')
 
         train_loss = train_loss.item() / (num_batches)
         loss_tracker.append(train_loss)
@@ -112,8 +111,6 @@ if __name__ == '__main__':
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
             }, model_path)
-
-        print(f'\nEpoch: {epoch+1}/{NUM_EPOCHS} Avg Loss: {train_loss:.4f}\n')
         
     # Display loss history
     plt.plot(loss_tracker)
