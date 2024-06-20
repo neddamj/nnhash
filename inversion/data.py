@@ -6,6 +6,7 @@ from PIL import Image
 import numpy as np
 import argparse
 import pickle
+import random
 import os
 
 class Hash2ImgDataset(Dataset):
@@ -30,66 +31,38 @@ class Hash2ImgDataset(Dataset):
         # Apply specified transforms
         if self.transforms:
             image = self.transforms(image)
-        
+
         return hash, image
-    
-def save_data(split, hash_func):
-    data = train_data if split == 'train' else val_data
-    hashes = []
-    for i, sample in enumerate(data):
-        save_path = f'./_data/{split}/images/{i+1}.jpeg'
-        img = sample[0]
-        img = img.resize((64, 64))
-        save_img(save_path, img)
-        hashes.append(compute_hash(save_path, hash_func=hash_func))
-        if (i+1) % 500 == 0:
-            print(f'{i+1} image-hash pairs saved')
 
-    # save the hashes for each image
-    hash_file_path = f'./_data/{split}/hashes.pkl'
-    with open(hash_file_path, 'wb') as f:
-        pickle.dump(hashes, f)
+def hash2tensor(hash, hash_func='pdq'):
+    if hash_func == 'neuralhash':
+        hash = bin(hash)[2:]
+        hash_tensor = torch.tensor([float(num) for num in hash])
+        if hash_tensor.shape != torch.Size([128]):
+            num_zeros = 128 - hash_tensor.shape[0]
+            hash_tensor = torch.cat((torch.tensor([0 for _ in range(num_zeros)]), hash_tensor), dim=0)
+    elif hash_func == 'pdq':
+        hash_tensor = torch.tensor(hash.copy())
+    else: # photodna
+        hash_tensor = torch.tensor([float(num) for num in hash])
+    return hash_tensor
 
-def save_img(save_path, img):
-    img.save(save_path)
-
-def int_to_binary(tensor):
-    # Ensure the tensor is of the correct shape and type
-    if tensor.shape != (1, 144) or not torch.all((0 <= tensor) & (tensor <= 255)):
-        raise ValueError("Input tensor must be of shape [1, 144] with values in the range [0, 255].")
-    
-    # Convert the tensor to uint8 type
-    tensor = tensor.to(torch.uint8)
-    
-    # Convert to binary representation using bit shifts and bitwise AND
-    binary_tensor = ((tensor.unsqueeze(-1) >> torch.arange(8, dtype=torch.uint8)) & 1).flatten().view(1, -1)
-    
-    return binary_tensor
-
-def binary_to_int(binary_tensor):
-    # Ensure the tensor is of the correct shape
-    if binary_tensor.shape != (1, 1152) or not torch.all((binary_tensor == 0) | (binary_tensor == 1)):
-        raise ValueError("Input tensor must be of shape [1, 1152] with binary values {0, 1}.")
-    
-    # Reshape the binary tensor to have 8 columns
-    binary_tensor = binary_tensor.view(-1, 8)
-    
-    # Convert each 8-bit segment back to its integer form
-    powers_of_two = 2 ** torch.arange(8, dtype=torch.uint8)
-    int_tensor = (binary_tensor * powers_of_two).sum(dim=1).view(1, -1)
-    
-    return int_tensor
+def bitwise_flip(tensor, p=0.1):
+    flat_tensor = tensor.flatten().to(torch.uint8)
+    # Calculate the number of elements to flip
+    num_elements_to_flip = int(p * flat_tensor.numel())
+    # Randomly select indices to flip
+    indices_to_flip = random.sample(range(flat_tensor.numel()), num_elements_to_flip)
+    # Perform bitwise flip on the selected elements
+    for idx in indices_to_flip:
+        flat_tensor[idx] = flat_tensor[idx] ^ 0xFF
+    return flat_tensor.reshape(tensor.shape)
 
 def perturb_hash(hash, p=0.1, hash_func='pdq'):
     if p == 0:
         return hash
     if hash_func == 'photodna':
-        hash = int_to_binary(hash)
-        mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
-        mask = torch.ones_like(hash).int(); mask[0][mask_indices] = 0
-        print(mask, mask_indices)
-        perturbed_hash = torch.tensor([[int(hash[0][i].item()) if mask[0][i] else not int(hash[0][i].item()) for i in range(1152)]]).int()
-        perturbed_hash = binary_to_int(perturbed_hash)
+        perturbed_hash = bitwise_flip(hash, p=p)
     else:
         mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
         mask = torch.ones_like(hash).int()
