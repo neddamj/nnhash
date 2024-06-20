@@ -31,21 +31,41 @@ class Hash2ImgDataset(Dataset):
         # Apply specified transforms
         if self.transforms:
             image = self.transforms(image)
-
+        
         return hash, image
+    
+def save_data(split, hash_func):
+    data = train_data if split == 'train' else val_data
+    hashes = []
+    for i, sample in enumerate(data):
+        save_path = f'./_data/{split}/images/{i+1}.jpeg'
+        img = sample[0]
+        img = img.resize((64, 64))
+        save_img(save_path, img)
+        hashes.append(compute_hash(save_path, hash_func=hash_func))
+        if (i+1) % 500 == 0:
+            print(f'{i+1} image-hash pairs saved')
 
-def hash2tensor(hash, hash_func='pdq'):
-    if hash_func == 'neuralhash':
-        hash = bin(hash)[2:]
-        hash_tensor = torch.tensor([float(num) for num in hash])
-        if hash_tensor.shape != torch.Size([128]):
-            num_zeros = 128 - hash_tensor.shape[0]
-            hash_tensor = torch.cat((torch.tensor([0 for _ in range(num_zeros)]), hash_tensor), dim=0)
-    elif hash_func == 'pdq':
-        hash_tensor = torch.tensor(hash.copy())
-    else: # photodna
-        hash_tensor = torch.tensor([float(num) for num in hash])
-    return hash_tensor
+    # save the hashes for each image
+    hash_file_path = f'./_data/{split}/hashes.pkl'
+    with open(hash_file_path, 'wb') as f:
+        pickle.dump(hashes, f)
+
+def save_img(save_path, img):
+    img.save(save_path)
+
+def int_to_binary(tensor):
+    # Ensure the tensor is of the correct shape and type
+    if tensor.shape != (1, 144) or not torch.all((0 <= tensor) & (tensor <= 255)):
+        raise ValueError("Input tensor must be of shape [1, 144] with values in the range [0, 255].")
+    
+    # Convert the tensor to uint8 type
+    tensor = tensor.to(torch.uint8)
+    
+    # Convert to binary representation using bit shifts and bitwise AND
+    binary_tensor = ((tensor.unsqueeze(-1) >> torch.arange(8, dtype=torch.uint8)) & 1).flatten().view(1, -1)
+    
+    return binary_tensor
 
 def bitwise_flip(tensor, p=0.1):
     flat_tensor = tensor.flatten().to(torch.uint8)
@@ -73,7 +93,6 @@ def perturb_hash(hash, p=0.1, hash_func='pdq'):
             mask[mask_indices] = 0
             perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
     return perturbed_hash
-
 if __name__ == '__main__':
     '''
     This will load the data into a pytorch dataset and then save the image/hash pairs to
