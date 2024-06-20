@@ -53,20 +53,52 @@ def save_data(split, hash_func):
 def save_img(save_path, img):
     img.save(save_path)
 
+def int_to_binary(tensor):
+    # Ensure the tensor is of the correct shape and type
+    if tensor.shape != (1, 144) or not torch.all((0 <= tensor) & (tensor <= 255)):
+        raise ValueError("Input tensor must be of shape [1, 144] with values in the range [0, 255].")
+    
+    # Convert the tensor to uint8 type
+    tensor = tensor.to(torch.uint8)
+    
+    # Convert to binary representation using bit shifts and bitwise AND
+    binary_tensor = ((tensor.unsqueeze(-1) >> torch.arange(8, dtype=torch.uint8)) & 1).flatten().view(1, -1)
+    
+    return binary_tensor
+
+def binary_to_int(binary_tensor):
+    # Ensure the tensor is of the correct shape
+    if binary_tensor.shape != (1, 1152) or not torch.all((binary_tensor == 0) | (binary_tensor == 1)):
+        raise ValueError("Input tensor must be of shape [1, 1152] with binary values {0, 1}.")
+    
+    # Reshape the binary tensor to have 8 columns
+    binary_tensor = binary_tensor.view(-1, 8)
+    
+    # Convert each 8-bit segment back to its integer form
+    powers_of_two = 2 ** torch.arange(8, dtype=torch.uint8)
+    int_tensor = (binary_tensor * powers_of_two).sum(dim=1).view(1, -1)
+    
+    return int_tensor
+
 def perturb_hash(hash, p=0.1, hash_func='pdq'):
     if p == 0:
         return hash
-    mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
-    mask = torch.ones_like(hash).int()
     if hash_func == 'photodna':
-        mask[0][mask_indices] = 0
-        perturbed_hash = hash * mask
-    elif hash_func == 'pdq':
-        mask[mask_indices] = 0
-        perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(256)]).int()
-    else: # neuralhash
-        mask[mask_indices] = 0
-        perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
+        hash = int_to_binary(hash)
+        mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
+        mask = torch.ones_like(hash).int(); mask[0][mask_indices] = 0
+        print(mask, mask_indices)
+        perturbed_hash = torch.tensor([[int(hash[0][i].item()) if mask[0][i] else not int(hash[0][i].item()) for i in range(1152)]]).int()
+        perturbed_hash = binary_to_int(perturbed_hash)
+    else:
+        mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
+        mask = torch.ones_like(hash).int()
+        if hash_func == 'pdq':
+            mask[mask_indices] = 0
+            perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(256)]).int()
+        else: # neuralhash
+            mask[mask_indices] = 0
+            perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
     return perturbed_hash
 
 if __name__ == '__main__':
