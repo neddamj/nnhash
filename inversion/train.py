@@ -22,6 +22,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', help='Number of Epochs to train for', default=50, type=int)
     parser.add_argument('--batch_size', help='Batch size to be used in training', default=32, type=int)
     parser.add_argument('--hash_func', help='Hash function that you want to invert', default='pdq', type=str)
+    parser.add_argument('perturbation', help='Magnitude of perturbation to be applied to the hashes', default=0.0, type=float)
     parser.add_argument('--learning_rate', help='Learning Rate to be used during training', default=5e-4, type=float)
     args = parser.parse_args()
 
@@ -42,7 +43,7 @@ if __name__ == '__main__':
 
     # Magnitude of the perturbation to be applied to the hash vaules
     # during training [0, 1)
-    perturbation = 0.1
+    perturbation = args.perturbation
 
     # Create the dataset and data loader for training
     if rgb:

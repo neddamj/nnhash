@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-r','--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
 parser.add_argument('-d', '--display', help='Display the generated images or not', default=0, type=int)
 parser.add_argument('-f','--hash_func', help='Hash function to be inverted', required=True, type=str)
+parser.add_argument('-u', '--perturb', help='Magnitude of the perturbation', required=True, type=float)
 parser.add_argument('-p','--path', help='Path to the saved torch model to be used', required=True, type=str)
 args = parser.parse_args()
 
@@ -42,11 +43,11 @@ else:
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'val', 'images']), 
-                          hash_paths=os.path.sep.join(['.', '_data', 'val', 'hashes.pkl']), 
+dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'train', 'images']), 
+                          hash_paths=os.path.sep.join(['.', '_data', 'train', 'hashes.pkl']), 
                           hash_func=args.hash_func, 
                           transforms=transform,
-                          perturbation=0)
+                          perturbation=args.perturb)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model 
@@ -61,7 +62,7 @@ perceptual_sim = lpips.LPIPS(net='vgg')
 
 avg_hamm_dist, avg_l2_dist, avg_ssim, avg_lpips = [], [], [], []
 for i, (hash, image) in enumerate(loader):
-    if i == 10:
+    if i == 100:
         break
     hash, image = hash.to(DEVICE), image.to(DEVICE)
     with torch.no_grad():
