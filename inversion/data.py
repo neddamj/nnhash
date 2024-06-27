@@ -79,7 +79,7 @@ def bitwise_flip(tensor, p=0.1):
     return flat_tensor.reshape(tensor.shape)
 
 def perturb_hash(hash, p=0.1, hash_func='pdq'):
-    if p == 0:
+    if p == 0.0:
         return hash
     if hash_func == 'photodna':
         perturbed_hash = bitwise_flip(hash, p=p)
@@ -93,6 +93,7 @@ def perturb_hash(hash, p=0.1, hash_func='pdq'):
             mask[mask_indices] = 0
             perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
     return perturbed_hash
+
 if __name__ == '__main__':
     '''
     This will load the data into a pytorch dataset and then save the image/hash pairs to
