@@ -117,7 +117,7 @@ if __name__ == '__main__':
         elif data == 'mnist':
             dataset = datasets.MNIST(root=root_path, train=True, download=True, transform=None)
         elif data == 'stl10':
-            dataset = datasets.STL10(root=root_path, split='train', download=True)
+            dataset = datasets.STL10(root=root_path, split='unlabeled', download=True)
         elif data == 'fashion':
             dataset = datasets.FashionMNIST(root=root_path, train=True, download=False)
         else:
