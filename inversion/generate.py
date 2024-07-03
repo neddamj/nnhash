@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
-from model import Hash2ImageModel
+from model import Hash2ImageModel, STL10Hash2ImageModel
 from data import Hash2ImgDataset
 
 from skimage.metrics import structural_similarity as ssim
@@ -25,6 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-r','--rgb', help='Are the images in the dataset rgb or greyscale', default=0, type=int)
 parser.add_argument('-d', '--display', help='Display the generated images or not', default=0, type=int)
 parser.add_argument('-f','--hash_func', help='Hash function to be inverted', required=True, type=str)
+parser.add_argument('-d','--dataset', help='Dataset to be inverted', required=True, type=str)
 parser.add_argument('-u', '--perturb', help='Magnitude of the perturbation', required=True, type=float)
 parser.add_argument('-p','--path', help='Path to the saved torch model to be used', required=True, type=str)
 args = parser.parse_args()
@@ -38,20 +39,30 @@ if rgb:
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
+    if args.dataset == 'stl10':
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Grayscale(),
+            transforms.Normalize((0.5), (0.5))
+        ])
+        rgb = False
 else:
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5), (0.5))
     ])
-dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'train', 'images']), 
-                          hash_paths=os.path.sep.join(['.', '_data', 'train', 'hashes.pkl']), 
+dataset = Hash2ImgDataset(image_paths=os.path.sep.join(['.', '_data', 'val', 'images']), 
+                          hash_paths=os.path.sep.join(['.', '_data', 'val', 'hashes.pkl']), 
                           hash_func=args.hash_func, 
                           transforms=transform,
                           perturbation=args.perturb)
 loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
 # Load the saved model 
-model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
+if args.dataset == 'stl10':
+    model = STL10Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
+else:
+    model = Hash2ImageModel(rgb=rgb, hash_func=args.hash_func)
 checkpoint = torch.load(args.path, map_location=DEVICE)
 model.load_state_dict(checkpoint['model_state_dict'])
 model.to(DEVICE)
