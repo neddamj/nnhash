@@ -79,7 +79,7 @@ class STL10Hash2ImageModel(nn.Module):
         self.deconv2 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.deconv4 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
-        self.conv2 = nn.Conv2d(64, 3, 5, stride=8) if rgb else nn.Conv2d(64, 1, 5, stride=4)
+        self.conv2 = nn.Conv2d(64, 3, 5, stride=4) if rgb else nn.Conv2d(64, 1, 5, stride=4)
 
     def forward(self, x):
         x = x.type(torch.float32)
