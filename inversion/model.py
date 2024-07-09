@@ -26,7 +26,7 @@ class ResidualBlock(nn.Module):
         x = x + orig_x
         x = self.dropout(x)
         return x
-    
+
 class Hash2ImageModel(nn.Module):
     def __init__(self, rgb=True, hash_func='pdq'):
         super().__init__()
@@ -45,7 +45,7 @@ class Hash2ImageModel(nn.Module):
         self.deconv2 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(64, 3, 5, stride=4) if rgb else nn.Conv2d(64, 1, 5, stride=4)
-        
+
     def forward(self, x):
         x = x.type(torch.float32)
         x = self.linear(x)
@@ -60,7 +60,7 @@ class Hash2ImageModel(nn.Module):
         x = self.deconv3(x)
         x = self.conv2(x)
         return x
-
+    
 class STL10Hash2ImageModel(nn.Module):
     def __init__(self, rgb=True, hash_func='pdq'):
         super().__init__()
@@ -78,7 +78,6 @@ class STL10Hash2ImageModel(nn.Module):
         self.deconv1 = nn.ConvTranspose2d(64, 64, 5, stride=2, padding=1)
         self.deconv2 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.deconv3 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
-        self.deconv4 = nn.ConvTranspose2d(64, 64, 3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(64, 3, 5, stride=4) if rgb else nn.Conv2d(64, 1, 5, stride=4)
 
     def forward(self, x):
@@ -93,10 +92,10 @@ class STL10Hash2ImageModel(nn.Module):
         x = self.deconv1(x)
         x = self.deconv2(x)
         x = self.deconv3(x)
-        x = self.deconv4(x)
         x = self.conv2(x)
         x = torch.tanh(x)
         return x
+
 
 if __name__ == '__main__':
     img_path = os.path.sep.join(['.', '_data', 'train', 'images', '1.jpeg'])
