@@ -51,6 +51,13 @@ if __name__ == '__main__':
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
+        if args.dataset == 'stl10':
+            transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Grayscale(),
+                transforms.Normalize((0.5), (0.5))
+            ])
+            rgb = False
     else:
         transform = transforms.Compose([
             transforms.ToTensor(),
