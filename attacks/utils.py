@@ -4,6 +4,8 @@ import numpy as np
 import subprocess
 import shutil
 import pdqhash
+import random
+import torch
 import glob
 import os
 
@@ -103,6 +105,63 @@ def generatePhotodnaHash(imagePath):
     hashString = ','.join([i for i in hashList])
     hashList = hashString.split(',')
     return hashList
+
+def hash2tensor(hash, hash_func='pdq'):
+    if hash_func == 'neuralhash':
+        hash = bin(hash)[2:]
+        hash_tensor = torch.tensor([float(num) for num in hash])
+        if hash_tensor.shape != torch.Size([128]):
+            num_zeros = 128 - hash_tensor.shape[0]
+            hash_tensor = torch.cat((torch.tensor([0 for _ in range(num_zeros)]), hash_tensor), dim=0)
+    elif hash_func == 'pdq':
+        hash_tensor = torch.tensor(hash.copy())
+    else: # photodna
+        hash_tensor = torch.tensor([float(num) for num in hash])
+    return hash_tensor
+
+def tensor2hash(tensor: torch.Tensor, hash_func='pdq'):
+    if hash_func == 'neuralhash':
+        raise NotImplementedError
+    elif hash_func == 'pdq':
+        hash_val = tensor.numpy()
+    else: # photodna
+        raise NotImplementedError
+    return hash_val
+
+def perturb_hash_tensor(hash, p=0.1, hash_func='pdq'):
+    if p == 0.0:
+        return hash
+    if hash_func == 'photodna':
+        def bitwise_flip(tensor, p=0.1):
+            flat_tensor = tensor.flatten().to(torch.uint8)
+            # Calculate the number of elements to flip
+            num_elements_to_flip = int(p * flat_tensor.numel())
+            # Randomly select indices to flip
+            indices_to_flip = random.sample(range(flat_tensor.numel()), num_elements_to_flip)
+            # Perform bitwise flip on the selected elements
+            for idx in indices_to_flip:
+                flat_tensor[idx] = flat_tensor[idx] ^ 0xFF
+            return flat_tensor.reshape(tensor.shape)
+        perturbed_hash = bitwise_flip(hash, p=p)
+    else:
+        mask_indices = torch.multinomial(hash.float(), int(hash.numel()*p), replacement=False)
+        mask = torch.ones_like(hash).int()
+        if hash_func == 'pdq':
+            mask[mask_indices] = 0
+            perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(256)]).int()
+        else: # neuralhash
+            mask[mask_indices] = 0
+            perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
+    return perturbed_hash
+
+def perturb_hash(hash_val, p=0.1, hash_func='pdq'):
+    # Convert the hash to a tensor
+    h_tensor = hash2tensor(hash_val, hash_func=hash_func)
+    # Perturb the hash tensor
+    h_perturbed = perturb_hash_tensor(h_tensor, p=p, hash_func=hash_func)
+    # Convert the tensor back to a hash
+    h_val = tensor2hash(h_perturbed, hash_func=hash_func)
+    return h_val
 
 ## Data Helper Functions
 def resize_imgs(image_paths, new_size=(512, 512), batch=False):
