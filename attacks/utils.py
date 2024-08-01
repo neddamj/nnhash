@@ -121,7 +121,8 @@ def hash2tensor(hash, hash_func='pdq'):
 
 def tensor2hash(tensor: torch.Tensor, hash_func='pdq'):
     if hash_func == 'neuralhash':
-        raise NotImplementedError
+        tensor_str = "".join(str(num.int().item()) for num in tensor)
+        hash_val = int(tensor_str, 2)
     elif hash_func == 'pdq':
         hash_val = tensor.numpy()
     else: # photodna
@@ -129,7 +130,7 @@ def tensor2hash(tensor: torch.Tensor, hash_func='pdq'):
     return hash_val
 
 def perturb_hash_tensor(hash, p=0.1, hash_func='pdq'):
-    if p == 0.0:
+    if p == 0:
         return hash
     if hash_func == 'photodna':
         def bitwise_flip(tensor, p=0.1):
