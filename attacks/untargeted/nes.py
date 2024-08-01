@@ -17,7 +17,8 @@ class NESAttack:
                  eps, 
                  l2_threshold, 
                  l2_tolerance, 
-                 num_samples):
+                 num_samples, 
+                 p):
         self.mean = mean
         self.std = std
         self.sigma = sigma
@@ -25,6 +26,7 @@ class NESAttack:
         self.l2_threshold = l2_threshold
         self.l2_tolerance = l2_tolerance
         self.num_samples = num_samples
+        self.p = p
 
     def nes_gradient_estimate(self, img, mean=0, std=0.1, sigma=0.5, num_samples=100, hash_func='neuralhash'):
         grads = []
@@ -34,8 +36,8 @@ class NESAttack:
             noise = np.random.normal(mean, std, size=img.shape)
             new = img + sigma*noise*255
             # Find the hamming dist
-            orig_hash = utils.compute_hash(img, hash_func=hash_func)
-            perterbed_hash = utils.compute_hash(new, hash_func=hash_func)
+            orig_hash = utils.perturb_hash(utils.compute_hash(img, hash_func=hash_func), p=self.p, hash_func=hash_func)
+            perterbed_hash = utils.perturb_hash(utils.compute_hash(new, hash_func=hash_func), p=self.p, hash_func=hash_func)
             g = noise*utils.distance(orig_hash, perterbed_hash, 'hamming', hash_func=hash_func)
             grads.append(g)
             num_queries += 2
