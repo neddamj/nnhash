@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 class ZOSignSGDttack:
-    def __init__(self, max_queries, epsilon, l2_threshold, l2_tolerance, search_steps):
+    def __init__(self, max_queries, epsilon, l2_threshold, l2_tolerance, search_steps, p):
         self.max_queries = max_queries
         self.epsilon = epsilon
         self.l2_threshold = l2_threshold
@@ -18,6 +18,7 @@ class ZOSignSGDttack:
         #self.lower_tolerance = lower_tolerance
         self.l2_tolerance = l2_tolerance
         self.search_steps = search_steps
+        self.p = p
 
     def grad_estimate(self, img, hash_func):
         _grads = np.zeros_like(img).astype(np.float64)
@@ -26,10 +27,17 @@ class ZOSignSGDttack:
         for _ in range(self.max_queries):
             exp_noise = np.random.randn(*_shape)
             pert_img = img + self.epsilon * (255 * exp_noise)
-            hamm_dist = utils.distance(utils.compute_hash(pert_img, hash_func=hash_func), 
-                                       utils.compute_hash(img, hash_func=hash_func), 
-                                       'hamming',
-                                       hash_func=hash_func)
+            img_hash = utils.perturb_hash(
+                utils.compute_hash(img, hash_func=hash_func), 
+                p=self.p, 
+                hash_func=hash_func
+                )
+            pert_hash = utils.perturb_hash(
+                utils.compute_hash(pert_img, hash_func=hash_func), 
+                p=self.p, 
+                hash_func=hash_func
+                )
+            hamm_dist = utils.distance(img_hash, pert_hash, 'hamming', hash_func=hash_func)
             est_deriv = hamm_dist / self.epsilon
             _grads += est_deriv * exp_noise
         print('Gradient Estimation Complete...')

@@ -21,12 +21,14 @@ class SimBAttack:
                 hamming_threshold: int,
                 l2_threshold: int,
                 max_steps: int,
-                fast: bool):
+                fast: bool,
+                p: float):
         self.eps = eps
         self.hamming_threshold = hamming_threshold
         self.l2_threshold = l2_threshold
         self.max_steps = max_steps
         self.fast = fast
+        self.p = p
     
     def sample_pixel(self, img: np.array) -> Tuple[int, int, int]:
         H, W, C = img.shape
@@ -57,9 +59,20 @@ class SimBAttack:
         add_img = np.clip(add_img, 0.0, 255.0)
         sub_img = np.clip(sub_img, 0.0, 255.0)
         # Compute the hash values of the all images
-        img_hash = utils.compute_hash(img, hash_func=hash_func)
-        add_hash = utils.compute_hash(add_img, hash_func=hash_func)
-        sub_hash = utils.compute_hash(sub_img, hash_func=hash_func)
+        img_hash = utils.perturb_hash(
+            utils.compute_hash(img, hash_func=hash_func),
+            p=self.p,
+            hash_func=hash_func)
+        add_hash = utils.perturb_hash(
+            utils.compute_hash(add_img, hash_func=hash_func),
+            p=self.p,
+            hash_func=hash_func
+            )
+        sub_hash = utils.perturb_hash(
+            utils.compute_hash(sub_img, hash_func=hash_func),
+            p=self.p,
+            hash_func=hash_func
+            )
         # Compute hamming distances
         img_hamm = utils.distance(init_hash, img_hash, 'hamming', hash_func=hash_func)
         add_hamm = utils.distance(init_hash, add_hash, 'hamming', hash_func=hash_func)
@@ -77,7 +90,11 @@ class SimBAttack:
         img = utils.load_img(img_path).astype(np.float32)
         orig_img = copy.deepcopy(img)
         # Compute the hash of the image
-        init_hash = utils.compute_hash(img_path, hash_func=hash_func)
+        init_hash = utils.perturb_hash(
+            utils.compute_hash(img_path, hash_func=hash_func),
+            p=self.p,
+            hash_func=hash_func
+            )
         stepsize = int(255*self.eps)
         step_counter = 0
         # Filename of the final SimBA image
