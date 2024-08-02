@@ -155,7 +155,7 @@ def perturb_hash_tensor(hash, p=0.1, hash_func='pdq'):
             perturbed_hash = torch.tensor([int(hash[i].item()) if mask[i] else (not int(hash[i].item())) for i in range(128)]).int()
     return perturbed_hash
 
-def perturb_hash(hash_val, p=0.1, hash_func='pdq'):
+def perturb_hash(hash_val, p=0, hash_func='pdq'):
     # Convert the hash to a tensor
     h_tensor = hash2tensor(hash_val, hash_func=hash_func)
     # Perturb the hash tensor
