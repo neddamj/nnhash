@@ -15,15 +15,26 @@ class HSJAttack:
                 max_iters, 
                 grad_queries, 
                 l2_threshold, 
-                hamming_threshold):
+                hamming_threshold,
+                p):
         self.max_iters = max_iters
         self.grad_queries = grad_queries
         self.l2_threshold = l2_threshold
         self.hamming_threshold = hamming_threshold
+        self.p = p
 
     def decision_fn(self, orig_img, new_img, threshold, hash_func):
         # Save the images and get their hashes
-        orig_hash, new_hash = utils.compute_hash(orig_img, hash_func=hash_func), utils.compute_hash(new_img, hash_func=hash_func)
+        orig_hash  = utils.perturb_hash(
+                utils.compute_hash(orig_img, hash_func=hash_func),
+                p=self.p,
+                hash_func=hash_func
+            )
+        new_hash = utils.perturb_hash(
+                utils.compute_hash(new_img, hash_func=hash_func),
+                p=self.p,
+                hash_func=hash_func
+            )
         # Make the decision based on the threshold
         hamming_dist = utils.distance(orig_hash, new_hash, 'hamming', hash_func=hash_func)
         print(f'Hamming Dist: {hamming_dist}')
