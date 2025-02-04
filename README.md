@@ -1,6 +1,6 @@
-# Assessing the Adversarial Security of Practical Perceptual Hashing Algorithms
+# Robustness of Practical Perceptual Hashing Algorithms to Hash Evasion and Hash Inversion Attacks
 
-This repo contais the official implementation for the paper [Assessing the Adversarial Security of Practical Perceptual Hashing Algorithms](https://arxiv.org/pdf/2406.00918).
+This repo contais the official implementation for the paper [Robustness of Practical Perceptual Hashing Algorithms to Hash Evasion and Hash Inversion Attacks](https://arxiv.org/pdf/2406.00918). 
 
 ## Setup
 
